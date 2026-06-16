@@ -29,6 +29,9 @@ logs/
 civadvisor_ui.json
 **/civadvisor_ui.json
 
+# ── Installer build output ───────────────────────────────────────────────────
+installer/Output/
+
 # ── OS / editor cruft ────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

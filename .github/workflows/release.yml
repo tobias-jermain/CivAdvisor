@@ -1,0 +1,57 @@
+name: Build & Release Installer
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install -r overlay/requirements.txt
+
+      - name: Build exe with PyInstaller
+        run: |
+          pyinstaller `
+            --onefile `
+            --noconsole `
+            --name CivAdvisor `
+            --distpath overlay/dist `
+            --workpath overlay/build_tmp `
+            --specpath overlay `
+            --clean `
+            overlay/main.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\civadvisor.iss'
+        shell: pwsh
+
+      - name: Upload installer as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CivAdvisor_Setup
+          path: installer/Output/CivAdvisor_Setup.exe
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/Output/CivAdvisor_Setup.exe
+          generate_release_notes: true
