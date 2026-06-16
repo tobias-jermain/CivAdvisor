@@ -1,0 +1,37 @@
+# ── Secrets — never commit API keys ─────────────────────────────────────────
+api_key.txt
+api_key.txt.txt
+**/api_key.txt
+**/api_key*.txt
+*.key
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── PyInstaller build output ─────────────────────────────────────────────────
+overlay/build/
+overlay/build_tmp/
+overlay/dist/
+build_tmp/
+dist/
+*.spec
+
+# ── Logs & runtime artifacts ────────────────────────────────────────────────
+logs/
+**/logs/
+*.log
+
+# ── Overlay runtime config (per-user window position + focus) ────────────────
+civadvisor_ui.json
+**/civadvisor_ui.json
+
+# ── OS / editor cruft ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

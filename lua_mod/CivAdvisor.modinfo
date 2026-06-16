@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="a1b2c3d4-e5f6-7890-abcd-ef1234567890" version="1">
+    <Properties>
+        <Name>CivAdvisor State Export</Name>
+        <Description>Exports player state to Lua.log each turn for the CivAdvisor overlay.</Description>
+        <AffectsSavedGames>0</AffectsSavedGames>
+        <SupportsSinglePlayer>1</SupportsSinglePlayer>
+        <SupportsMultiplayer>1</SupportsMultiplayer>
+    </Properties>
+    <Files>
+        <File>UI/CivAdvisor.xml</File>
+        <File>UI/CivAdvisor.lua</File>
+    </Files>
+    <InGameActions>
+        <AddUserInterfaces id="CivAdvisorUI">
+            <Properties>
+                <Context>InGame</Context>
+            </Properties>
+            <File>UI/CivAdvisor.xml</File>
+        </AddUserInterfaces>
+    </InGameActions>
+</Mod>
