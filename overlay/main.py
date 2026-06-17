@@ -44,13 +44,28 @@ import advisor_engine
 import board
 
 
+# ── Writable data directory ──────────────────────────────────────────────────
+
+def _data_dir() -> str:
+    """Per-user writable dir for logs and settings.
+
+    The frozen build installs under Program Files, which is read-only for
+    normal users, so writable state must live elsewhere. In dev, keep files
+    next to the source for convenience.
+    """
+    if getattr(sys, "frozen", False):
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+        d = os.path.join(base, "CivAdvisor")
+    else:
+        d = os.path.dirname(os.path.abspath(__file__))
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
 # ── Logging ─────────────────────────────────────────────────────────────────
 
 def _setup_logging() -> logging.Logger:
-    base_dir = os.path.dirname(
-        sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__)
-    )
-    log_dir = os.path.join(base_dir, "logs")
+    log_dir = os.path.join(_data_dir(), "logs")
     os.makedirs(log_dir, exist_ok=True)
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_path = os.path.join(log_dir, f"civadvisor_{ts}.log")
@@ -86,11 +101,7 @@ STATE_TAG   = "CIV_ADVISOR_STATE:"
 TURNEND_TAG = "CIV_ADVISOR_TURNEND"
 log.info(f"Watching Lua log at: {LUA_LOG_PATH}")
 
-def _base_dir() -> str:
-    return os.path.dirname(
-        sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
-
-UI_CFG_PATH = os.path.join(_base_dir(), "civadvisor_ui.json")
+UI_CFG_PATH = os.path.join(_data_dir(), "civadvisor_ui.json")
 
 
 # ── Design tokens (Wispr-Flow inspired) ─────────────────────────────────────
