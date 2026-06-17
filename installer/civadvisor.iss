@@ -41,7 +41,7 @@ Source: "..\overlay\dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Lua mod — installed into the user's Civilization VI Mods folder
 Source: "..\lua_mod\CivAdvisor.modinfo"; DestDir: "{userdocs}\{#ModsSubPath}"; Flags: ignoreversion
-Source: "..\lua_mod\CivAdvisor.xml";     DestDir: "{userdocs}\{#ModsSubPath}"; Flags: ignoreversion
+Source: "..\lua_mod\UI\CivAdvisor.xml";  DestDir: "{userdocs}\{#ModsSubPath}\UI"; Flags: ignoreversion
 Source: "..\lua_mod\UI\CivAdvisor.lua";  DestDir: "{userdocs}\{#ModsSubPath}\UI"; Flags: ignoreversion
 
 [Icons]
