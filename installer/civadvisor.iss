@@ -88,7 +88,7 @@ end;
 
 function ModSubscribed(): Boolean;
 begin
-  Result := DirExists(ExpandConstant('{userdocs}\{#ModsSubPath}'));
+  Result := DirExists(ExpandConstant('{userdocs}\My Games\Sid Meier''s Civilization VI\Mods\CivAdvisor'));
 end;
 
 // ── Pre-install: silently remove the old version ─────────────────────────────
