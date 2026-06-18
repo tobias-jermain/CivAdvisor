@@ -30,19 +30,6 @@ def first_sentence(text: str) -> str:
     m = re.match(r"^(.*?[.!?])(\s|$)", t)
     return m.group(1) if m else t
 
-from PySide6.QtCore import (
-    Qt, QThread, Signal, QPropertyAnimation, QEasingCurve, QPoint,
-    QParallelAnimationGroup, QTimer,
-)
-from PySide6.QtGui import QColor, QFont, QGuiApplication
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QFrame, QLabel, QVBoxLayout, QHBoxLayout,
-    QScrollArea, QGraphicsDropShadowEffect,
-)
-
-import advisor_engine
-import board
-
 
 # ── Writable data directory ──────────────────────────────────────────────────
 
@@ -63,6 +50,10 @@ def _data_dir() -> str:
 
 
 # ── Logging ─────────────────────────────────────────────────────────────────
+#
+# Set up logging BEFORE importing PySide6 so that a failed Qt import (a missing
+# DLL in a frozen build, say) still lands in the log file instead of vanishing
+# silently behind the windowed `--noconsole` executable.
 
 def _setup_logging() -> logging.Logger:
     log_dir = os.path.join(_data_dir(), "logs")
@@ -77,11 +68,15 @@ def _setup_logging() -> logging.Logger:
     fh.setFormatter(logging.Formatter("%(asctime)s  %(levelname)-8s  %(message)s",
                                       datefmt="%Y-%m-%d %H:%M:%S"))
     logger.addHandler(fh)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter("%(levelname)s  %(message)s"))
-    logger.addHandler(ch)
+    # In a windowed (`--noconsole`) build sys.stdout is None; only attach the
+    # console handler when there's a real stream to write to.
+    if sys.stdout is not None:
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(logging.Formatter("%(levelname)s  %(message)s"))
+        logger.addHandler(ch)
     logger.info(f"CivAdvisor starting — log: {log_path}")
+    logger.info(f"Log directory: {log_dir}")
     return logger
 
 log = _setup_logging()
@@ -90,6 +85,24 @@ def _handle_uncaught(exc_type, exc_value, exc_tb):
     log.critical("Unhandled exception:\n" +
                  "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
 sys.excepthook = _handle_uncaught
+
+
+try:
+    from PySide6.QtCore import (
+        Qt, QThread, Signal, QPropertyAnimation, QEasingCurve, QPoint,
+        QParallelAnimationGroup, QTimer,
+    )
+    from PySide6.QtGui import QColor, QFont, QGuiApplication
+    from PySide6.QtWidgets import (
+        QApplication, QWidget, QFrame, QLabel, QVBoxLayout, QHBoxLayout,
+        QScrollArea, QGraphicsDropShadowEffect,
+    )
+except Exception:
+    log.critical("Failed to import PySide6 — is it installed?\n" + traceback.format_exc())
+    raise
+
+import advisor_engine
+import board
 
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -124,6 +137,9 @@ TEXT_HI  = "#ECECF1"
 TEXT_MID = "#9A9AAB"
 TEXT_LO  = "#5A5A6C"
 BORDER   = "#2A2A35"
+
+# Spinner frames for the "turn is changing" loading state.
+SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
 VICTORY_COLOURS = {
     "science": "#5B8AF5", "culture": "#C06BE8", "domination": "#E85A6B",
@@ -259,6 +275,53 @@ class LogWatcher(QThread):
             log.error("Snapshot assemble error:\n" + traceback.format_exc())
 
 
+# ── Stat chip (with loading spinner) ─────────────────────────────────────────
+
+class StatChip(QFrame):
+    """A small labelled stat. Shows a spinner glyph while the turn is changing."""
+
+    def __init__(self, label: str, colour: str):
+        super().__init__()
+        self._colour  = colour
+        self._loading = False
+        self.setFixedHeight(36)
+        self.setStyleSheet(
+            f"StatChip{{background:{CARD_BG2};border:1px solid {BORDER};border-radius:8px;}}")
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(4, 4, 4, 4)
+        lay.setSpacing(1)
+
+        self._cap = QLabel(label)
+        self._cap.setAlignment(Qt.AlignCenter)
+        self._cap.setStyleSheet(f"color:{TEXT_LO};font-size:8px;font-weight:700;letter-spacing:0.5px;")
+
+        self._val = QLabel("—")
+        self._val.setAlignment(Qt.AlignCenter)
+        self._val.setStyleSheet(f"color:{colour};font-size:12px;font-weight:800;")
+
+        lay.addWidget(self._cap)
+        lay.addWidget(self._val)
+
+    @property
+    def loading(self) -> bool:
+        return self._loading
+
+    def set_value(self, text: str):
+        self._loading = False
+        self._val.setText(text)
+        self._val.setStyleSheet(f"color:{self._colour};font-size:12px;font-weight:800;")
+
+    def set_loading(self):
+        self._loading = True
+        self._val.setStyleSheet(f"color:{TEXT_MID};font-size:12px;font-weight:800;")
+        self._val.setText(SPINNER[0])
+
+    def spin(self, frame: int):
+        if self._loading:
+            self._val.setText(SPINNER[frame % len(SPINNER)])
+
+
 # ── Compact victory progress bar ────────────────────────────────────────────
 
 class VictoryBar(QWidget):
@@ -365,6 +428,8 @@ class AdvisorWindow(QWidget):
         self._last_report = None
         self._tab_counts  = {}
         self._focus_pills = {}
+        self._stat_chips  = {}
+        self._spin_frame  = 0
 
         screen = QGuiApplication.primaryScreen().geometry()
         self.scr_w, self.scr_h = screen.width(), screen.height()
@@ -378,16 +443,25 @@ class AdvisorWindow(QWidget):
         if self._focus not in FOCUS_FULL:
             self._focus = "auto"
 
+        # Spinner timer — drives the loading glyphs while the turn is changing.
+        self._spin_timer = QTimer(self)
+        self._spin_timer.setInterval(90)
+        self._spin_timer.timeout.connect(self._tick_spinner)
+
         self._build_ui()
         self._restyle_focus_pills()
-        self.setFixedHeight(360)
-        self.move(self._pos_x, self.scr_h + 60)   # park off-screen until first state
+        self._render_content()        # show the waiting state immediately
+        self._refit()
 
         self.watcher = LogWatcher(LUA_LOG_PATH)
         self.watcher.state_ready.connect(self._on_state)
         self.watcher.turn_ended.connect(self._on_turn_end)
         self.watcher.start()
         log.info(f"UI ready — watcher started (focus={self._focus})")
+
+        # Show the window right away so it's obvious the app is running, even
+        # before the game produces any state.
+        self.pop_in()
 
     # ── Config persistence (position + focus) ─────────────────────────────────
 
@@ -455,6 +529,21 @@ class AdvisorWindow(QWidget):
         self.meta = QLabel("Waiting for game…")
         self.meta.setStyleSheet(f"color:{TEXT_MID};font-size:10px;")
         c.addWidget(self.meta)
+
+        # Stats row — key per-turn yields; spin while the turn is changing.
+        statrow = QHBoxLayout()
+        statrow.setSpacing(5)
+        self._stat_chips = {}
+        for key, label, colour in (
+            ("gold",    "GOLD",  WARM),
+            ("science", "SCI",   ACCENT),
+            ("culture", "CULT",  "#C06BE8"),
+            ("faith",   "FAITH", "#E8C24A"),
+        ):
+            chip = StatChip(label, colour)
+            self._stat_chips[key] = chip
+            statrow.addWidget(chip, 1)
+        c.addLayout(statrow)
 
         # Tab bar — Now / Plan / Cities
         self._tab = "now"
@@ -543,12 +632,54 @@ class AdvisorWindow(QWidget):
                     "strongest": "", "tips":
                     [{"type": "warn", "title": "Internal error", "body": "Check logs.", "tab": "now"}]}
 
+    # ── Stats + loading spinner ───────────────────────────────────────────────
+
+    def _update_stats(self, state: dict):
+        """Fill the stat chips from the latest snapshot, clearing the spinner."""
+        def fmt(v):
+            try:
+                return f"{float(v):.0f}"
+            except (TypeError, ValueError):
+                return "—"
+
+        gpt = state.get("gpt")
+        gold = fmt(state.get("gold"))
+        if gpt is not None:
+            try:
+                gold = f"{float(state.get('gold', 0)):.0f} ({float(gpt):+.0f})"
+            except (TypeError, ValueError):
+                pass
+        self._stat_chips["gold"].set_value(gold)
+        self._stat_chips["science"].set_value(fmt(state.get("science")))
+        self._stat_chips["culture"].set_value(fmt(state.get("culture")))
+        self._stat_chips["faith"].set_value(fmt(state.get("faith")))
+        if self._spin_timer.isActive():
+            self._spin_timer.stop()
+
+    def _start_loading(self):
+        """Put every stat chip into the spinning state."""
+        for chip in self._stat_chips.values():
+            chip.set_loading()
+        self._spin_frame = 0
+        if not self._spin_timer.isActive():
+            self._spin_timer.start()
+
+    def _tick_spinner(self):
+        self._spin_frame += 1
+        if any(chip.spin(self._spin_frame) or chip.loading
+               for chip in self._stat_chips.values()):
+            return
+        self._spin_timer.stop()
+
     def _on_turn_end(self):
-        """Local player ended their turn — slip away while the AIs move."""
-        log.info("Turn ended — hiding overlay")
-        if self._visible:
-            self.pop_out()
-        self._user_closed = False   # auto-hide, not a manual close: reappear next turn
+        """Local player ended their turn — stay open, show the AIs are moving."""
+        log.info("Turn ended — AIs moving, showing loading state")
+        self._start_loading()
+        self.status.setText("● AIs moving — computing next turn…")
+        self.status.setStyleSheet(f"color:{WARM};font-size:9px;")
+        self._user_closed = False
+        if not self._visible:
+            self.pop_in()
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
 
@@ -606,6 +737,8 @@ class AdvisorWindow(QWidget):
         self.meta.setText(
             f"{advisor_engine.pretty_leader(m.get('leader',''))}  ·  "
             f"{advisor_engine.pretty_leader(m.get('civ',''))}  ·  {m.get('era','')}")
+
+        self._update_stats(state)
 
         self._tab_counts = {"now": 0, "plan": 0, "cities": 0}
         for t in report.get("tips", []):

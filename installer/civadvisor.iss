@@ -59,4 +59,4 @@ Type: filesandordirs; Name: "{userdocs}\{#ModsSubPath}"
 
 [Messages]
 ; Friendly finish message
-FinishedLabel=CivAdvisor is installed.%n%nThe Civ VI mod has been placed in:%n%n  Documents\{#ModsSubPath}%n%nEnable it in Civ VI → Additional Content before starting a game.
+FinishedLabel=CivAdvisor is installed.%n%nThe Civ VI mod has been placed in:%n%n  Documents\{#ModsSubPath}%n%nEnable it in Civ VI → Additional Content before starting a game.%n%nLogs are written to:%n%n  %LOCALAPPDATA%\CivAdvisor\logs
