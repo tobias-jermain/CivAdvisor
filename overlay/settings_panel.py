@@ -249,6 +249,21 @@ class SettingsPanel(QWidget):
         self.cb_tray.toggled.connect(self._on_tray_toggle)
         lay.addWidget(self.cb_tray)
 
+        lay.addWidget(self._divider())
+
+        # Auto-execute
+        lay.addWidget(_section("AUTO-EXECUTE (EXPERIMENTAL)"))
+        self.cb_auto = QCheckBox("Auto-queue research & civics when nothing is set")
+        self.cb_auto.setStyleSheet(_CHECK_CSS)
+        self.cb_auto.setChecked(self.cfg.auto_execute)
+        self.cb_auto.toggled.connect(self._on_auto_toggle)
+        lay.addWidget(self.cb_auto)
+        lay.addWidget(_hint(
+            "Requires the AutoAdvisor Lua mod to be active in-game. "
+            "Only acts when research or civics queue is empty — never overwrites "
+            "a deliberate choice."
+        ))
+
         lay.addStretch(1)
         return page
 
@@ -356,6 +371,11 @@ class SettingsPanel(QWidget):
     def _on_tray_toggle(self, checked: bool):
         self.cfg.minimize_to_tray = checked
         self.cfg.save()
+
+    def _on_auto_toggle(self, checked: bool):
+        self.cfg.auto_execute = checked
+        self.cfg.save()
+        self.changed.emit()
 
     def _on_path_edit(self):
         self.cfg.log_path = self.path_edit.text().strip()

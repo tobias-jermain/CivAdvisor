@@ -49,7 +49,7 @@ class Config:
         "x", "y", "focus",
         "mode", "provider", "api_keys", "ai_models", "ollama_endpoint",
         "opacity", "auto_show_on_turn", "minimize_to_tray",
-        "log_path",
+        "log_path", "auto_execute",
     )
 
     def __init__(self, path: str):
@@ -70,6 +70,8 @@ class Config:
         self.minimize_to_tray = True
         # Data
         self.log_path = ""
+        # Automation
+        self.auto_execute = False
 
     # ── Load / migrate ────────────────────────────────────────────────────────
 
@@ -115,6 +117,7 @@ class Config:
         cfg.auto_show_on_turn = bool(raw.get("auto_show_on_turn", True))
         cfg.minimize_to_tray = bool(raw.get("minimize_to_tray", True))
         cfg.log_path = str(raw.get("log_path", raw.get("logPath", "")) or "")
+        cfg.auto_execute = bool(raw.get("auto_execute", False))
         return cfg
 
     @staticmethod
@@ -140,6 +143,7 @@ class Config:
             "auto_show_on_turn": self.auto_show_on_turn,
             "minimize_to_tray": self.minimize_to_tray,
             "log_path": self.log_path,
+            "auto_execute": self.auto_execute,
         }
 
     def save(self):
