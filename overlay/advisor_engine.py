@@ -36,6 +36,201 @@ TOTAL_CIVICS = 50
 DIPLO_VICTORY_POINTS = 20
 
 
+# ── Expert knowledge tables ───────────────────────────────────────────────────
+
+EUREKA_TRIGGERS: dict = {
+    "POTTERY":           "Build a Farm on any tile",
+    "ANIMAL_HUSBANDRY":  "Build a Pasture improvement",
+    "MINING":            "Improve a resource with a Mine",
+    "SAILING":           "Found a city on a Coast tile",
+    "ASTROLOGY":         "Discover a Natural Wonder with any unit",
+    "BRONZE_WORKING":    "Kill 3 Barbarian units",
+    "IRRIGATION":        "Farm a resource requiring Irrigation (Rice, Wheat, or Sugar)",
+    "WRITING":           "Meet 3 City-States",
+    "ARCHERY":           "Kill a unit with a Slinger",
+    "MASONRY":           "Build a Quarry improvement",
+    "EARLY_EMPIRE":      "Grow your total empire Population to 6",
+    "HORSEBACK_RIDING":  "Build a Stable in any city",
+    "CURRENCY":          "Build 2 Market buildings",
+    "IRON_WORKING":      "Build an Encampment district",
+    "ENGINEERING":       "Build Ancient Walls in any city",
+    "MATHEMATICS":       "Build 3 specialty districts total",
+    "SHIPBUILDING":      "Build 2 Galley units",
+    "MILITARY_TACTICS":  "Kill a unit with a Spearman",
+    "APPRENTICESHIP":    "Build 3 Mine improvements",
+    "STIRRUPS":          "Have a Medieval-era or later government",
+    "MACHINERY":         "Build a Lumber Mill improvement",
+    "FEUDALISM":         "Build 6 Farm improvements",
+    "MASS_PRODUCTION":   "Build a Shipyard in any city",
+    "GUNPOWDER":         "Build an Armory in any city",
+    "SQUARE_RIGGING":    "Kill a unit with a Musketman",
+    "ASTRONOMY":         "Build a University adjacent to a Mountain tile",
+    "PRINTING":          "Build 2 University buildings",
+    "SCIENTIFIC_THEORY": "Have a Renaissance-era or later government",
+    "INDUSTRIALIZATION": "Build 3 Workshop buildings",
+    "STEAM_POWER":       "Build 2 Harbor districts",
+    "BALLISTICS":        "Build 2 Armory buildings",
+    "MILITARY_SCIENCE":  "Kill a unit with a Cavalry unit",
+    "RIFLING":           "Build a Barracks and a Stable in the same city",
+    "ELECTRICITY":       "Build a Dam improvement",
+    "COMBUSTION":        "Discover 3 Oil resources on the map",
+    "FLIGHT":            "Build an Aerodrome district",
+    "RADIO":             "Establish a National Park",
+    "ROCKETRY":          "Build a Research Lab",
+    "ADVANCED_FLIGHT":   "Build 3 Biplane units",
+    "COMPUTERS":         "Build a Research Lab in any Campus city",
+    "SATELLITES":        "Launch an Earth Satellite city project",
+    "ROBOTICS":          "Build a Spaceport district",
+    "NUCLEAR_FISSION":   "Build 2 Power Plants of any type",
+}
+
+INSPIRATION_TRIGGERS: dict = {
+    "CODE_OF_LAWS":         "Meet any other civilization",
+    "CRAFTSMANSHIP":        "Improve 3 tiles with a Builder",
+    "FOREIGN_TRADE":        "Meet any other civilization",
+    "EARLY_EMPIRE":         "Grow your Capital to Population 6",
+    "MYSTICISM":            "Found a Pantheon",
+    "STATE_WORKFORCE":      "Build any specialty district",
+    "POLITICAL_PHILOSOPHY": "Meet 3 City-States",
+    "GAMES_AND_RECREATION": "Build 3 different specialty districts",
+    "DRAMA_AND_POETRY":     "Build any Theatre Square district building",
+    "RECORDED_HISTORY":     "Found or conquer 3 cities total",
+    "DEFENSIVE_TACTICS":    "Have a completed Encampment district",
+    "MILITARY_TRADITION":   "Earn any unit promotion",
+    "FEUDALISM":            "Build 6 Farm improvements",
+    "CIVIL_SERVICE":        "Have a city on a River that contains a Granary",
+    "DIPLOMATIC_LEAGUE":    "Send a Trade Route to another civilization's city",
+    "GUILDS":               "Build a Commercial Hub and a Harbor in the same city",
+    "MEDIEVAL_FAIRES":      "Build a Market in a city receiving an international Trade Route",
+    "THEOLOGY":             "Have a Holy City in your territory",
+    "DIVINE_RIGHT":         "Build 2 Temple buildings",
+    "REFORMED_CHURCH":      "Have 3 cities following your Religion",
+    "HUMANISM":             "Recruit or patronize any Great Person",
+    "MERCANTILISM":         "Acquire any Great Work",
+    "THE_ENLIGHTENMENT":    "Declare Friendship with 3 civilizations",
+    "NATURAL_HISTORY":      "Build a Zoo",
+    "URBANIZATION":         "Build a Commercial Hub and a Theatre Square in the same city",
+    "CONSERVATION":         "Have a city with both an Aqueduct and a Theatre Square",
+    "GLOBALIZATION":        "Build 2 Airports",
+    "SOCIAL_MEDIA":         "Have a city following your Religion on every continent you control",
+    "SUFFRAGE":             "Have any city reach Population 15",
+    "CLASS_STRUGGLE":       "Have 3 Industrial Zones with Factory buildings",
+    "COLD_WAR":             "Research Nuclear Fission",
+}
+
+# City-state bonuses: keyed by uppercase underscore name. "tier" S > A > B.
+CS_BONUS_DATA: dict = {
+    "GENEVA":        {"bonus": "+15% Science in all your cities (requires no active war)",
+                      "victory": ["science"], "tier": "S"},
+    "YEREVAN":       {"bonus": "choose any promotion for Missionaries and Apostles you train — ignore normal unlock order",
+                      "victory": ["religion"], "tier": "S"},
+    "KUMASI":        {"bonus": "+2 Culture and +1 Gold per specialty district in your trade-route origin city",
+                      "victory": ["culture"], "tier": "S"},
+    "ZANZIBAR":      {"bonus": "grants Cloves and Cinnamon to your empire (+12 Amenities total)",
+                      "victory": ["any"], "tier": "S"},
+    "BOLOGNA":       {"bonus": "receive one free building in a new era's class every era",
+                      "victory": ["science", "culture"], "tier": "S"},
+    "HONG_KONG":     {"bonus": "+20% Production toward city projects in all your cities",
+                      "victory": ["science", "domination"], "tier": "A"},
+    "SINGAPORE":     {"bonus": "+2 Production in all cities per Trade Route you send to another civ or CS",
+                      "victory": ["science", "culture"], "tier": "A"},
+    "AUCKLAND":      {"bonus": "Fishing Boats yield +1 Food +1 Production, plus an extra +1 Food each era",
+                      "victory": ["science", "culture"], "tier": "A"},
+    "TORONTO":       {"bonus": "+10% Production toward wonders and districts in cities with 3+ specialty districts",
+                      "victory": ["science", "culture"], "tier": "A"},
+    "VILNIUS":       {"bonus": "instantly applies +100% Science per era elapsed to your current tech once",
+                      "victory": ["science"], "tier": "A"},
+    "NALANDA":       {"bonus": "Builders construct Holy Sites instantly; Holy Site buildings cost 50% less",
+                      "victory": ["religion", "science"], "tier": "A"},
+    "AMSTERDAM":     {"bonus": "Trade Routes to cities with Luxury/Strategic resources grant you those resources",
+                      "victory": ["any"], "tier": "A"},
+    "ANTANANARIVO":  {"bonus": "+2% Culture (scaling) per citizen in your most productive cultural city",
+                      "victory": ["culture"], "tier": "A"},
+    "NAN_MADOL":     {"bonus": "+2 Culture to all Coast and Lake tiles in cities with a district",
+                      "victory": ["culture"], "tier": "A"},
+    "ARMAGH":        {"bonus": "Builders can construct Monasteries (faith buildings) on any tile",
+                      "victory": ["religion"], "tier": "A"},
+    "VATICAN":       {"bonus": "Missionaries and Apostles spread 50% more Religious Pressure per action",
+                      "victory": ["religion"], "tier": "A"},
+    "MEXICO_CITY":   {"bonus": "improvements on Natural Wonder tiles provide +2 of all yields",
+                      "victory": ["culture"], "tier": "A"},
+    "PRESLAV":       {"bonus": "international Trade Routes from your cities provide +3 Culture each",
+                      "victory": ["culture"], "tier": "B"},
+    "HUNZA":         {"bonus": "Trade Routes sent to city-states provide +4 Gold",
+                      "victory": ["religion", "culture"], "tier": "B"},
+    "CHINGUETTI":    {"bonus": "Trade Routes from your cities provide +2 Faith each",
+                      "victory": ["religion"], "tier": "B"},
+    "MOHENJO_DARO":  {"bonus": "all cities with no adjacent improvements get +2 Housing",
+                      "victory": ["science", "culture"], "tier": "B"},
+}
+
+# Dark Age policy cards by era index (era the Dark Age is entered from).
+_DARK_AGE_CARDS: dict = {
+    0: [("Twilight Valor",    "Military",  "+5 Combat Strength for your units while in own territory"),
+        ("Professional Army", "Military",  "unit upgrades cost 50% less Gold"),
+        ("Isolationism",      "Economic",  "+2 Food +2 Production from every internal Trade Route"),
+        ("Scripture",         "Economic",  "+100% Faith from all Holy Site buildings"),
+        ("Monasticism",       "Wildcard",  "+75% Science in Holy Site cities; −25% Culture empire-wide")],
+    1: [("Twilight Valor",    "Military",  "+5 Combat Strength for your units while in own territory"),
+        ("Professional Army", "Military",  "unit upgrades cost 50% less Gold"),
+        ("Isolationism",      "Economic",  "+2 Food +2 Production from every internal Trade Route"),
+        ("Scripture",         "Economic",  "+100% Faith from all Holy Site buildings"),
+        ("Monasticism",       "Wildcard",  "+75% Science in Holy Site cities; −25% Culture empire-wide")],
+    2: [("Twilight Valor",    "Military",  "+5 Combat Strength for your units while in own territory"),
+        ("Professional Army", "Military",  "unit upgrades cost 50% less Gold"),
+        ("Isolationism",      "Economic",  "+2 Food +2 Production from every internal Trade Route"),
+        ("Monasticism",       "Wildcard",  "+75% Science in Holy Site cities; −25% Culture empire-wide")],
+    3: [("Twilight Valor",    "Military",  "+5 Combat Strength for your units while in own territory"),
+        ("Professional Army", "Military",  "unit upgrades cost 50% less Gold"),
+        ("Isolationism",      "Economic",  "+2 Food +2 Production from every internal Trade Route")],
+}
+
+_HEROIC_DEDICATIONS: dict = {
+    0: ("Monumentality",
+        "Faith-buy Settlers, Builders, and Traders at 25% off — 3 picks lets you snowball expansion and infrastructure instantly"),
+    1: ("Free Inquiry",
+        "all Great Person tile improvements give +1 Science +1 Production — flood GP points and recruit aggressively"),
+    2: ("Free Inquiry or Exodus of the Evangelists",
+        "science GP sprint, or faith-buy Apostles/Missionaries 25% cheaper to lock down religious dominance"),
+    3: ("To Arms! or Free Inquiry",
+        "slash unit upgrade costs with your gold surplus, or push a science Great Person rush — 3 picks compounds everything"),
+}
+
+# High-value policy cards: (min_era_idx, slot, name, effect, focus_hint)
+_HIGH_VALUE_CARDS: list = [
+    (0, "Economic", "Triangular Trade",
+     "+4 Gold +1 Faith per Trade Route — highest raw gold yield of any econ card for most of the game",
+     "any"),
+    (1, "Economic", "Rationalism",
+     "+50% Science in Campuses with 3+ adjacency bonus, or in any city with 10+ population",
+     "science"),
+    (1, "Economic", "Market Economy",
+     "+2 Gold per Market and Harbor in every city",
+     "any"),
+    (2, "Wildcard", "Simultaneum",
+     "Religious buildings can be built in any city regardless of dominant faith — spreads infrastructure fast",
+     "religion"),
+    (3, "Military", "Levée en Masse",
+     "+10 Combat Strength and +1 Movement for all Corps and Armies",
+     "domination"),
+    (3, "Economic", "Reform the Coinage",
+     "+0.5 Gold per citizen across all cities — massive in a tall or large empire",
+     "any"),
+    (4, "Economic", "Five-Year Plan",
+     "+2 Production per Industrial Zone and Neighborhood in every city",
+     "science"),
+    (5, "Wildcard", "Space Race",
+     "+5% Production on Space Race projects per city with a Spaceport",
+     "science"),
+    (5, "Wildcard", "Satellite Broadcasts",
+     "+2 Tourism from Seaside Resorts; +1 Culture +1 Tourism from National Parks",
+     "culture"),
+    (6, "Wildcard", "Online Communities",
+     "+100% Tourism from National Parks, World Wonders, and Natural Wonders — often decisive for a late culture win",
+     "culture"),
+]
+
+
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 def _num(v, default=0.0):
@@ -68,6 +263,38 @@ def _rank(mine: float, others: list) -> tuple:
 
 def _clamp01(x: float) -> float:
     return max(0.0, min(1.0, x))
+
+
+def _clean_name(s: str) -> str:
+    """TECH_IRON_WORKING → 'Iron Working'."""
+    for prefix in ("TECH_", "CIVIC_"):
+        if s.upper().startswith(prefix):
+            s = s[len(prefix):]
+    return s.replace("_", " ").title()
+
+
+def _eureka_trigger(name: str) -> str:
+    up = name.upper().replace(" ", "_")
+    for key, trigger in EUREKA_TRIGGERS.items():
+        if key in up or up in key:
+            return trigger
+    return ""
+
+
+def _inspiration_trigger(name: str) -> str:
+    up = name.upper().replace(" ", "_")
+    for key, trigger in INSPIRATION_TRIGGERS.items():
+        if key in up or up in key:
+            return trigger
+    return ""
+
+
+def _cs_data(name: str) -> dict:
+    up = name.upper().replace(" ", "_").replace("-", "_")
+    for key, data in CS_BONUS_DATA.items():
+        if key in up or up in key:
+            return data
+    return {}
 
 
 # ── Context: derive every signal from the raw state ─────────────────────────
@@ -356,10 +583,22 @@ def rule_growth(c) -> list:
     out = []
     if c["starving_cities"]:
         out.append({"type": "warn", "weight": 80, "title": "Cities starving", "tab": "now",
-            "body": f"{', '.join(c['starving_cities'][:3])} have no surplus food and will shrink. Work farms/fishing boats or fix amenities."})
+            "body": (f"{', '.join(c['starving_cities'][:3])} have zero food surplus and will shrink. "
+                     "Work more food tiles (flat Grassland +2, Farms add +1 extra after Feudalism), "
+                     "or fix amenities — unhappy cities halve their growth.")})
     if c["capped_cities"]:
+        era = c["era_idx"]
+        names = ", ".join(c["capped_cities"][:3])
+        if era <= 0:
+            fix = "Build a Granary (+2 Housing, available immediately)"
+        elif era <= 2:
+            fix = ("Build an Aqueduct district (+6 Housing if placed adjacent to a River, Lake, or Mountain — "
+                   "vastly better than a Granary and available from Classical era)")
+        else:
+            fix = ("Build a Neighborhood district — its Housing scales with city size and has no cap. "
+                   "Neighborhoods also add Appeal to surrounding tiles")
         out.append({"type": "warn", "weight": 64, "title": "Growth stalled (housing)",
-            "body": f"{', '.join(c['capped_cities'][:3])} are at the housing cap. Build a granary, aqueduct, or neighbourhoods."})
+            "body": f"{names} hit the housing cap — growth is 50% penalised. {fix}."})
     return out
 
 
@@ -527,54 +766,105 @@ def rule_victory_focus(c, strongest, chosen=False) -> list:
 
 PHASE_PLAYBOOK = {
     0: [  # Ancient
-        {"type": "info", "weight": 60, "title": "Slinger, Warrior, then Settlers",
-         "body": "Standard strong opening: a Slinger (for the Archery eureka + barb defence) and a Warrior, then hard-pump Settlers. Districts come later — claim land first.",
+        {"type": "info", "weight": 60, "title": "Slinger → Warrior → Settlers",
+         "body": ("Open with a Slinger (triggers Archery eureka, costs 0 turns if you already researched it), "
+                  "a Warrior for barb defence, then hard-pump Settlers. "
+                  "Kill your first Barbarian with the Slinger to get Archery for free. "
+                  "Districts come later — land compounds all game, buildings don't."),
          "when": lambda c: c["turn"] < 25},
-        {"type": "info", "weight": 56, "title": "Promote Magnus, then chop",
-         "body": "Put Magnus (Provision promotion) in your best production city so chopped/bought Settlers cost no population. Then harvest forests straight into Settlers — fastest expansion in the game.",
+        {"type": "info", "weight": 56, "title": "Magnus (Provision) → chop → Settlers",
+         "body": ("Assign Magnus governor to your best production city and take the Provision promotion. "
+                  "Magnus+Provision means chopped Settlers cost zero population — you keep all your citizens. "
+                  "Each Forest/Rainforest/Stone chop yields ~80–140 Production depending on era. "
+                  "Chop your best city's forests straight into Settlers, then use remaining charges for wonders or key districts."),
          "when": lambda c: c["cities"] < 6},
-        {"type": "info", "weight": 53, "title": "Found a Pantheon",
-         "body": "Grab a Pantheon as soon as you hit 25 faith — pick for your land (God of the Forge for war, Lady of the Reeds, Divine Spark, Religious Settlements). Free permanent yields.",
+        {"type": "info", "weight": 53, "title": "Found a Pantheon early",
+         "body": ("Grab a Pantheon the moment you hit 25 Faith — don't wait. "
+                  "Top picks: God of the Forge (+25% Production for Ancient/Classical units, huge for warmongers), "
+                  "Lady of the Reeds/Marshes (+2 Production on Marsh/Reef/Floodplains), "
+                  "Divine Spark (+1 Great Person point per Holy Site, Campus, Theatre Square), "
+                  "Religious Settlements (free Settler when you border a rival religion). "
+                  "Free, permanent yields for the rest of the game."),
          "when": lambda c: c["faith_bal"] >= 15 and c["turn"] < 60},
     ],
     1: [  # Classical
-        {"type": "info", "weight": 58, "title": "Districts before wonders",
-         "body": "A Campus or Commercial Hub out-values almost every early wonder. Place them on max adjacency (mountains/reefs for Campus, rivers/districts for Commercial) and only wonder-build with leftover production or chops."},
-        {"type": "info", "weight": 54, "title": "Government + the right cards",
-         "body": "Take a tier-1 government and run your strongest cards — Colonization (+50% Settlers) while expanding, Agoge (+50% units) if warring, Caravansaries for gold. Swap them free every civic; never leave a slot wasted."},
+        {"type": "info", "weight": 58, "title": "Districts before wonders — and place them right",
+         "body": ("A well-placed Campus or Commercial Hub beats almost every early wonder. "
+                  "Campus: next to Mountains (+1 each) or Reefs (+1 each) — 3+ adjacency is elite. "
+                  "Commercial Hub: on a River (+2 base) next to other districts (+1 each). "
+                  "Place the district first, then fill buildings; never build a wonder with production you could use for a district.")},
+        {"type": "info", "weight": 54, "title": "Swap policy cards every civic — never leave slots weak",
+         "body": ("Changing policy cards is free every time you complete a civic — there is zero Gold penalty. "
+                  "Run Colonization (+50% Settler production) while expanding, "
+                  "Agoge (+50% Ancient/Classical unit production) if warring, "
+                  "Caravansaries (+2 Gold per Trade Route) once you have Traders. "
+                  "Most players leave obsolete cards running for 20 turns — that's free yields wasted every single turn.")},
     ],
     2: [  # Medieval
-        {"type": "info", "weight": 60, "title": "This is your attack window",
-         "body": "Knights/Crossbows/your unique unit peak here, before everyone has Walls + Musketmen. If you have any military edge, declare and take a city now — domination is far cheaper this era than later.",
+        {"type": "info", "weight": 60, "title": "This is your best attack window",
+         "body": ("Knights, Crossbowmen, and your unique unit peak here before everyone has Musketmen and Renaissance Walls. "
+                  "To crack a city: bring 2+ Trebuchets (they hit walls AND city HP directly at full strength) "
+                  "plus a Siege Tower (lets your melee attack the city's HP directly, ignoring walls) "
+                  "and Crossbows for ranged fire. Without siege, melee does only 15% damage to walls. "
+                  "A captured city beats 40+ turns of building."),
          "when": lambda c: c["era_idx"] == 2 and not c["losing_war"]},
-        {"type": "info", "weight": 52, "title": "Chop your key builds",
-         "body": "Save Builder chops and Magnus for the things that matter — a wonder, a settler, or rush-finishing an Encampment before a war. A well-timed chop skips 15+ turns of production."},
+        {"type": "info", "weight": 52, "title": "Chop into your most important build",
+         "body": ("Builder chops are most valuable now (higher Production era modifiers). "
+                  "Prioritise: a wonder you're racing for, a key district before a war, or a Settler to lock down land. "
+                  "Magnus's Provision promotion still removes the population cost — always assign him before chopping Settlers.")},
     ],
     3: [  # Renaissance
-        {"type": "info", "weight": 60, "title": "Commit to ONE win — hard",
-         "body": "Your path should be locked in. Stop hedging: convert every spare hammer and all your gold/faith into that one condition. Splitting between two victories is the #1 way good positions get thrown."},
-        {"type": "info", "weight": 53, "title": "Win the Great People race",
-         "body": "Great People decide close games. Run the project to flood points into the type you need, and patronise with gold/faith to snipe key ones (e.g. a Great Scientist or Writer) before a rival grabs them."},
+        {"type": "info", "weight": 60, "title": "Lock in ONE victory path — stop hedging",
+         "body": ("Your victory should be decided. Convert every spare hammer, gold, and faith into that one path. "
+                  "Splitting between science AND culture AND religion means losing all three. "
+                  "If you're going Science: Campuses + Rationalism card + Oxford + Spaceport pipeline. "
+                  "If Culture: Theatre Squares + theming bonuses + tourism multipliers (Open Borders +25%, same Religion +25%, Trade Route +25% — all additive). "
+                  "If Domination: Corps-upgraded cavalry + artillery, never stop attacking.")},
+        {"type": "info", "weight": 53, "title": "Win the Great People race — patronise, don't wait",
+         "body": ("Great People decide close games. "
+                  "Run city projects in your Great Person cities to flood points (GP project → 100+ points of the right type). "
+                  "When a key Great Person is close to spawning and a rival is competing: "
+                  "spend Gold (1.5× point cost) or Faith (1× point cost) to patronise them instantly. "
+                  "Never let a Great Scientist or Writer that fits your victory go to an AI.")},
     ],
     4: [  # Industrial
-        {"type": "info", "weight": 58, "title": "Factory clusters = free production",
-         "body": "Industrial Zones + Factories give a regional bonus. Cluster cities within 6 tiles of one IZ so several share the Factory output — then Power them. It's a massive, quiet snowball most players underbuild."},
-        {"type": "info", "weight": 52, "title": "Build the win NOW, not later",
-         "body": "Lay the actual win condition this era: Spaceport + start projects, mass Theatre Squares/wonders for tourism, or Corps-upgraded artillery. Leaving it to the last era is how races get lost on the wire."},
+        {"type": "info", "weight": 58, "title": "Factory + Power Plant clusters",
+         "body": ("Industrial Zones give a regional bonus to ALL cities within 6 tiles of the Factory. "
+                  "Cluster 3–5 cities around one Industrial Zone, build the Factory, then Power it (Coal or Hydro). "
+                  "A powered Factory gives +4 Production to every city in range — massive, quiet snowball. "
+                  "Most players build one IZ per city and lose this; you want one central IZ powering several cities.")},
+        {"type": "info", "weight": 52, "title": "Start the win condition this era — not next",
+         "body": ("Industrial era is when the decisive infrastructure goes down. "
+                  "Science win: Spaceport + begin space projects. "
+                  "Culture win: Theatre Squares, Great Works theming, and start accumulating wonders for tourism. "
+                  "Domination: Corps + Army upgrades for Artillery, lock in on the weakest rival capital. "
+                  "Waiting until Atomic/Modern is how races get lost on the wire.")},
     ],
     5: [  # Modern
-        {"type": "info", "weight": 60, "title": "Weaponise culture into tourism",
-         "body": "Flight → Conservation → Computers, then carpet Seaside Resorts and National Parks and run Online Communities. Culture only wins once it's tourism — and Rock Bands can burst a stubborn rival open."},
-        {"type": "info", "weight": 52, "title": "Field a deterrent army",
-         "body": "Corps/Armies of current-era units (Infantry + Artillery, or Bombers) keep a peaceful win safe. A visible strong army stops a rival from declaring on you the moment you near victory."},
+        {"type": "info", "weight": 60, "title": "Convert culture into tourism — three multipliers stack",
+         "body": ("Culture doesn't win; tourism does. Each multiplier is additive, not multiplicative: "
+                  "Open Borders with a rival: +25% tourism against them. "
+                  "Active Trade Route to them: +25%. Same Religion: +25%. All three together: +75% bonus. "
+                  "Get Open Borders with EVERY rival as soon as possible. "
+                  "Then: Flight → Conservation → Computers, carpet Seaside Resorts and National Parks, run Online Communities. "
+                  "Rock Bands (spam them in Industrial/Modern) can burst 20–40% of a stubborn rival's tourism threshold in one shot.")},
+        {"type": "info", "weight": 52, "title": "Field a deterrent army — or someone will stop you",
+         "body": ("Corps and Armies of current-era units (Infantry + Artillery, or Bombers + Fighters) are mandatory. "
+                  "A visible strong army stops a rival from declaring the moment you near victory. "
+                  "If you have zero military near the finish line, expect someone to race to take your capital.")},
     ],
     6: [  # Atomic
-        {"type": "info", "weight": 60, "title": "Close it out — and deter",
-         "body": "Execute the win (space projects, tourism flood, or the last capitals) and keep a nuke or a modern army on hand. On the finish line, the only thing that beats you is being invaded — so make that impossible."},
+        {"type": "info", "weight": 60, "title": "Finish it — keep a deterrent",
+         "body": ("Execute the win condition now: space projects, flood tourism, or final capital captures. "
+                  "Keep a nuclear deterrent or a corps-strength army — on the finish line the only thing that stops you is invasion. "
+                  "If another player is also close to winning, hit them militarily or diplomatically to delay; "
+                  "denial beats out-racing a runaway.")},
     ],
     7: [  # Information / Future
-        {"type": "info", "weight": 62, "title": "Finish — every turn counts",
-         "body": "Final space projects, max tourism, or the last capital. The AIs are racing the same clock; don't waste a turn on anything that isn't your win condition."},
+        {"type": "info", "weight": 62, "title": "Every turn counts — finish now",
+         "body": ("Final space projects, max tourism, or the last capital. "
+                  "The AI is racing the same clock and can end the game before you if you waste turns. "
+                  "Nothing that isn't your win condition matters.")},
     ],
 }
 
@@ -943,63 +1233,186 @@ def rule_army_composition(c) -> list:
         return []
     out = []
     warish = c["at_war_with"] or c.get("focus") == "domination"
+    era = c["era_idx"]
     if warish and us.get("military", 0) >= 2 and not us.get("has_siege"):
-        out.append({"type": "warn", "weight": 70, "title": "No siege — you can't take cities",
-            "body": "Your army has zero siege units. Melee and cavalry bounce off walls. Build or upgrade Catapults → Bombards → Artillery before you attack, or you'll just feed units to the city's ranged strike."})
+        if era <= 1:
+            body = ("No siege in your stack — melee units deal only 15% damage to walls. "
+                    "Build a Catapult (full damage to walls and city HP) and pair it with a Battering Ram: "
+                    "the Ram lets melee attack walls at full strength instead of 15%. "
+                    "Together they break any Ancient/Classical city quickly.")
+        elif era <= 3:
+            body = ("No siege. Walls halve ranged damage and almost negate melee. "
+                    "Trebuchets/Bombards hit both walls and city HP at full strength — bring at least two. "
+                    "Add a Siege Tower: it lets melee units attack the city's HP directly, bypassing walls entirely. "
+                    "Trebuchet + Siege Tower + Crossbows is the formula that cracks Medieval cities fast.")
+        else:
+            body = ("No siege. Modern Walls have enormous HP and make melee/cavalry useless attackers. "
+                    "Artillery and Bombards deal full damage to walls and city HP directly — bring 2+. "
+                    "Corps-upgraded Artillery with a ranged Army behind them ends sieges in 3–5 turns.")
+        out.append({"type": "warn", "weight": 72, "title": "No siege — cities will not fall",
+                    "body": body})
     if us.get("outdated", 0) >= 2:
         out.append({"type": "info", "weight": 58, "title": f"{us['outdated']} units are obsolete",
-            "body": "Several units are far below your strongest unit's strength. Upgrade them with gold — outdated units lose fights they should win and waste maintenance."})
+            "body": ("Several units are well below your strongest unit's Combat Strength. Upgrade them with Gold — "
+                     "outdated units lose fights they should win and waste maintenance every turn. "
+                     "Run the Professional Army Dark Age card (if available) or a policy card to cut upgrade costs 50%.")})
     return out
 
 
 def rule_city_states(c) -> list:
     if not c["full_board"] or not c["city_states"]:
         return []
-    if any(_num(s.get("isMe")) > 0 for s in c["city_states"]):
-        return []        # already suzerain of at least one
-    best = max(c["city_states"], key=lambda s: _num(s.get("envoys")), default=None)
-    if best is None:
-        return []
-    e = int(_num(best.get("envoys")))
-    cstype = str(best.get("type", "")).replace("_", " ").title() or "city-state"
-    return [{"type": "info", "weight": 56, "title": "You're suzerain of nobody",
-        "body": f"City-state bonuses are free power. {best.get('name','A city-state')} ({cstype}) is your closest at "
-                f"{e} envoy(s) — send a few more to flip its suzerain bonus and unique units to you."}]
+    focus = c.get("focus", "auto")
+    not_mine = [s for s in c["city_states"] if not (_num(s.get("isMe")) > 0)]
+    if not not_mine:
+        return []  # suzerain of all visible city-states
+
+    def _priority(s):
+        name = str(s.get("name", "")).upper().replace(" ", "_").replace("-", "_")
+        data = _cs_data(name)
+        tier_score = {"S": 3, "A": 2, "B": 1}.get(data.get("tier", "B"), 1)
+        victory_match = 1 if (focus in data.get("victory", []) or "any" in data.get("victory", [])) else 0
+        return tier_score * 2 + victory_match
+
+    target = max(not_mine, key=lambda s: (_priority(s), _num(s.get("envoys", 0))))
+    cs_name  = str(target.get("name", "a city-state"))
+    envoys   = int(_num(target.get("envoys", 0)))
+    needed   = int(_num(target.get("needed", 0)))
+    gap      = max(0, needed - envoys) if needed > 0 else "a few"
+    cs_type  = str(target.get("type", "")).replace("_", " ").title() or "city-state"
+    data     = _cs_data(cs_name.upper().replace(" ", "_"))
+    bonus    = data.get("bonus", "a powerful unique suzerain bonus")
+    tier     = data.get("tier", "")
+    tier_tag = f" [Tier {tier}]" if tier else ""
+
+    gap_txt  = (f"{gap} more envoy{'s' if gap != 1 else ''} needed"
+                if isinstance(gap, int) else "a few more envoys needed")
+    my_txt   = f"You have {envoys} envoy{'s' if envoys != 1 else ''} there"
+
+    return [{"type": "info", "weight": 60,
+             "title": f"Court {cs_name} ({cs_type}) — {gap_txt}",
+             "body": (f"Suzerain bonus{tier_tag}: {bonus}. "
+                      f"{my_txt} — send {gap_txt} to flip the suzerain. "
+                      "City-state bonuses are permanent free power that most players leave on the table.")}]
 
 
 def rule_trade_routes(c) -> list:
     if not c["full_board"]:
         return []
     used, cap = c["trade_used"], c["trade_cap"]
-    if cap > 0 and used < cap:
-        idle = int(cap - used)
-        return [{"type": "info", "weight": 54, "title": f"{idle} idle trade route(s)",
-            "body": "Every Trader is free gold (or food/production), and domestic routes build roads between your cities. Build/assign Traders to fill all your route slots."}]
-    return []
+    if cap <= 0 or used >= cap:
+        return []
+    idle  = int(cap - used)
+    era   = c["era_idx"]
+    focus = c.get("focus", "auto")
+
+    if era <= 1 and c["capped_cities"]:
+        advice = ("Route domestically to housing-capped cities: domestic routes give +1 Food +1 Production "
+                  "to the origin city and auto-build roads between your cities — breaking the growth stall "
+                  "while connecting your empire for free.")
+    elif focus == "religion":
+        advice = ("Route to unconverted cities — every active Trade Route passively applies "
+                  "Religious Pressure from your Holy Cities to the destination. "
+                  "Pairing Traders with Missionaries accelerates conversion significantly.")
+    elif focus == "culture":
+        advice = ("International routes to civs with Theatre Squares stack the destination's yields onto yours. "
+                  "Also: if you're suzerain of Kumasi, the origin city gains +2 Culture +1 Gold "
+                  "per specialty district there — always route outward from your most district-heavy city.")
+    elif focus == "science":
+        advice = ("Route internationally to civs with Campuses for yield stacking. "
+                  "If suzerain of Singapore, each outbound Trade Route adds +2 Production to all your cities — "
+                  "route as many abroad as possible once you control Singapore.")
+    else:
+        advice = ("Domestic: +1 Food +1 Production to origin city (good early, builds roads). "
+                  "International: more Gold and yield bonuses from destination city. "
+                  "Run Triangular Trade policy card (+4 Gold +1 Faith per route) — "
+                  "it's the highest raw gold yield of any econ card for most of the game.")
+
+    return [{"type": "info", "weight": 56,
+             "title": f"{idle} idle trade route{'s' if idle > 1 else ''}",
+             "body": f"Every unassigned Trader is wasted yields every turn. {advice}"}]
 
 
 def rule_eureka(c) -> list:
     if not c["full_board"]:
         return []
-    if c["boost_tech"] == 0 and c["tech"].lower() not in ("none", "unknown"):
-        return [{"type": "info", "weight": 50, "title": f"Eureka still open: {c['tech']}",
-            "body": "Do this tech's eureka trigger (build the right thing / kill the right unit) before you finish it — it knocks roughly 40% off the cost. Free research."}]
-    if c["boost_civic"] == 0 and c["civic"].lower() not in ("none", "unknown"):
-        return [{"type": "info", "weight": 48, "title": f"Inspiration still open: {c['civic']}",
-            "body": "Trigger this civic's inspiration before finishing it for ~40% off. Cheap progress most players skip."}]
-    return []
+    out = []
+
+    tech = c["tech"]
+    if c["boost_tech"] == 0 and tech.lower() not in ("none", "unknown"):
+        name    = _clean_name(tech)
+        trigger = _eureka_trigger(tech)
+        turns   = c["tech_turns"]
+        urgent  = 0 < turns <= 8
+        weight  = (82 if turns <= 4 else 68) if urgent else 56
+        t_type  = "warn" if turns <= 4 else "info"
+        prefix  = f"Only {int(turns)} turn{'s' if turns != 1 else ''} left — " if urgent else ""
+        if trigger:
+            body = (f"{prefix}Trigger the Eureka before this finishes: {trigger}. "
+                    "A triggered Eureka removes ~40% of the research cost — "
+                    "never complete a tech without it if you can avoid it.")
+        else:
+            body = (f"{prefix}Complete this tech's Eureka condition before it finishes. "
+                    "The Eureka removes ~40% of the remaining research cost — free turns every time.")
+        out.append({"type": t_type, "weight": weight,
+                    "title": f"{'URGENT: ' if turns <= 4 and urgent else ''}Eureka open — {name}",
+                    "body": body})
+
+    civic = c["civic"]
+    if c["boost_civic"] == 0 and civic.lower() not in ("none", "unknown"):
+        name    = _clean_name(civic)
+        trigger = _inspiration_trigger(civic)
+        turns   = c["civic_turns"]
+        urgent  = 0 < turns <= 8
+        weight  = (76 if turns <= 4 else 62) if urgent else 52
+        t_type  = "warn" if turns <= 4 else "info"
+        prefix  = f"Only {int(turns)} turn{'s' if turns != 1 else ''} left — " if urgent else ""
+        if trigger:
+            body = (f"{prefix}Trigger the Inspiration: {trigger}. "
+                    "Saves ~40% of the civic cost — never finish a civic without it if you can help it.")
+        else:
+            body = (f"{prefix}Trigger this civic's Inspiration for ~40% off. "
+                    "Most players skip this every era and bleed dozens of free turns.")
+        out.append({"type": t_type, "weight": weight,
+                    "title": f"Inspiration open — {name}",
+                    "body": body})
+
+    return out[:2]
 
 
 def rule_era_age(c) -> list:
     if not c["full_board"]:
         return []
     if c["age"] == "dark":
-        return [{"type": "info", "weight": 56, "title": "Dark Age — turn it into a Heroic Age",
-            "body": "Dark Age policy cards are unusually strong — slot them. Then chase Era Score (firsts, wonders, taking cities) hard; a Heroic Age next era is one of the biggest swings in the game."}]
+        era_key  = min(c["era_idx"], max(_DARK_AGE_CARDS))
+        cards    = _DARK_AGE_CARDS.get(era_key, _DARK_AGE_CARDS[0])
+        card_str = "; ".join(f"{n} ({s}: {e})" for n, s, e in cards[:3])
+        ded_key  = min(c["era_idx"], max(_HEROIC_DEDICATIONS))
+        ded_name, ded_tip = _HEROIC_DEDICATIONS.get(ded_key, _HEROIC_DEDICATIONS[0])
+        return [{"type": "info", "weight": 60,
+                 "title": "Dark Age — slot the strong cards, aim for Heroic",
+                 "body": (f"Dark Age policies beat most normal-era cards — slot them now: {card_str}. "
+                          f"Then chase Era Score hard (great wonders, world firsts, city captures, civics) — "
+                          f"if you hit the Golden Age threshold this era, you get a Heroic Age next era with 3 Dedications instead of 1. "
+                          f"Best Dedication to pursue: {ded_name} — {ded_tip}.")}]
     if c["age"] == "golden":
-        return [{"type": "good", "weight": 40, "title": "Golden Age — press it",
-            "body": "Lean on your Golden Age dedication while it lasts (Monumentality buying with faith, Free Inquiry science, etc.). Don't coast through it."}]
+        return [{"type": "good", "weight": 42,
+                 "title": "Golden Age — activate your Dedication",
+                 "body": ("Your Golden Age Dedication is live — make sure it's actively exploited. "
+                          "Monumentality → faith-buy Settlers, Builders, and Traders at 25% off this era. "
+                          "Free Inquiry → Great Person tile improvements give +1 Science +1 Production — flood GP points. "
+                          "Wish You Were Here → double tourism this era — send Rock Bands abroad. "
+                          "Don't coast through a Golden Age without actively using your bonus.")}]
     return []
+
+
+_STRATEGIC_RES = {"IRON", "HORSES", "NITER", "COAL", "OIL", "ALUMINUM", "URANIUM"}
+_LUXURY_RES = {
+    "GOLD", "SILVER", "GEMS", "MARBLE", "IVORY", "SPICES", "SUGAR", "WINE",
+    "SILK", "COTTON", "DYES", "INCENSE", "FURS", "TEA", "COFFEE", "TOBACCO",
+    "TRUFFLES", "AMBER", "JADE", "PEARLS", "SALT", "OLIVES", "HONEY",
+    "WHALES", "TURTLES", "CINNAMON", "CLOVES", "CITRUS",
+}
 
 
 def rule_improve_tiles(c) -> list:
@@ -1007,17 +1420,60 @@ def rule_improve_tiles(c) -> list:
         return []
     for cd in c["city_data"]:
         un = cd.get("unimproved") or []
-        if un:
-            res = ", ".join(str(x).replace("_", " ").title() for x in un[:3])
-            return [{"type": "info", "weight": 50, "title": f"Unworked resources at {cd.get('name','a city')}",
-                "body": f"{res} sitting unimproved — a Builder there is free yields (and luxuries are free amenities for your whole empire). Don't leave them idle."}]
+        if not un:
+            continue
+        strategic, luxury, bonus = [], [], []
+        for r in un:
+            key = str(r).upper().replace(" ", "_")
+            if key in _STRATEGIC_RES:
+                strategic.append(str(r).replace("_", " ").title())
+            elif key in _LUXURY_RES:
+                luxury.append(str(r).replace("_", " ").title())
+            else:
+                bonus.append(str(r).replace("_", " ").title())
+        parts = []
+        if strategic:
+            parts.append(f"Strategic ({', '.join(strategic[:2])}) — required to build/upgrade this era's military units; "
+                         "zero stockpile = can't field key units")
+        if luxury:
+            parts.append(f"Luxury ({', '.join(luxury[:2])}) — +1 Amenity to your 4 largest cities each; "
+                         "each unique luxury type counts once")
+        if bonus:
+            parts.append(f"Bonus ({', '.join(bonus[:2])}) — extra Food/Production/Gold on the tile")
+        city_name = cd.get("name", "a city")
+        desc = "; ".join(parts) if parts else ", ".join(str(x).replace("_", " ").title() for x in un[:3])
+        return [{"type": "info", "weight": 52,
+                 "title": f"Unimproved resources at {city_name}",
+                 "body": (f"Send a Builder: {desc}. "
+                          "Resources only yield their bonus when improved with the correct improvement "
+                          "(Mine for strategic, Plantation/Pasture/Farm for luxuries).")}]
     return []
+
+
+def rule_policy_window(c) -> list:
+    """Flag a high-value policy card the player is likely missing this era."""
+    if not c["full_board"]:
+        return []
+    focus = c.get("focus", "auto")
+    era   = c["era_idx"]
+    # Walk highest-era first to surface the best applicable card
+    candidates = [(slot, name, effect)
+                  for min_era, slot, name, effect, hint in reversed(_HIGH_VALUE_CARDS)
+                  if era >= min_era and hint in ("any", focus)]
+    if not candidates:
+        return []
+    slot, name, effect = candidates[0]
+    return [{"type": "info", "weight": 47,
+             "title": f"Policy slot: run {name}",
+             "body": (f"{name} ({slot} slot): {effect}. "
+                      "Swap policy cards for free on every civic completion — "
+                      "never coast on a weak card when something this strong is unlocked.")}]
 
 
 BOARD_RULES = [
     rule_district_gaps, rule_campus_spot, rule_loyalty, rule_strategic_shortage,
     rule_army_composition, rule_city_states, rule_trade_routes, rule_eureka,
-    rule_era_age, rule_improve_tiles,
+    rule_era_age, rule_improve_tiles, rule_policy_window,
 ]
 
 
@@ -1044,7 +1500,7 @@ RULE_TABS = {
     "rule_science": "plan", "rule_culture": "plan", "rule_faith": "plan",
     "rule_expansion": "plan", "rule_phase_playbook": "plan", "rule_positive": "plan",
     "rule_city_states": "plan", "rule_trade_routes": "plan", "rule_eureka": "plan",
-    "rule_era_age": "plan",
+    "rule_era_age": "plan", "rule_policy_window": "plan",
 }
 
 
