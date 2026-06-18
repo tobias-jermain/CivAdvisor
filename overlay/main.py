@@ -21,6 +21,8 @@ import time
 import logging
 import threading
 import traceback
+import collections
+import itertools
 from datetime import datetime
 
 
@@ -55,19 +57,62 @@ def _data_dir() -> str:
 # DLL in a frozen build, say) still lands in the log file instead of vanishing
 # silently behind the windowed `--noconsole` executable.
 
+class RingLogHandler(logging.Handler):
+    """Thread-safe in-memory ring buffer feeding the live log viewer.
+
+    Handlers fire from any thread (the LogWatcher logs too), so the GUI polls
+    `since()` on the main thread rather than touching widgets from here.
+    """
+
+    def __init__(self, capacity: int = 8000):
+        super().__init__()
+        self._lock  = threading.Lock()
+        self._lines = collections.deque(maxlen=capacity)
+        self._base  = 0          # absolute index of the oldest retained line
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+        except Exception:
+            return
+        with self._lock:
+            if len(self._lines) == self._lines.maxlen:
+                self._base += 1   # the append below will evict the oldest line
+            self._lines.append(msg)
+
+    def since(self, idx: int):
+        """Return (new_lines, next_idx) for everything after absolute `idx`."""
+        with self._lock:
+            total = self._base + len(self._lines)
+            start = max(0, idx - self._base)
+            return list(itertools.islice(self._lines, start, None)), total
+
+
+LOG_BUFFER = RingLogHandler()
+LOG_DIR = os.path.join(_data_dir(), "logs")
+
+
 def _setup_logging() -> logging.Logger:
-    log_dir = os.path.join(_data_dir(), "logs")
-    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_path = os.path.join(log_dir, f"civadvisor_{ts}.log")
+    log_path = os.path.join(LOG_DIR, f"civadvisor_{ts}.log")
+
+    fmt = logging.Formatter(
+        "%(asctime)s  %(levelname)-8s  [%(threadName)s]  %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S")
 
     logger = logging.getLogger("civadvisor")
     logger.setLevel(logging.DEBUG)
     fh = logging.FileHandler(log_path, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
-    fh.setFormatter(logging.Formatter("%(asctime)s  %(levelname)-8s  %(message)s",
-                                      datefmt="%Y-%m-%d %H:%M:%S"))
+    fh.setFormatter(fmt)
     logger.addHandler(fh)
+
+    # Live in-app viewer gets everything, down to DEBUG.
+    LOG_BUFFER.setLevel(logging.DEBUG)
+    LOG_BUFFER.setFormatter(fmt)
+    logger.addHandler(LOG_BUFFER)
+
     # In a windowed (`--noconsole`) build sys.stdout is None; only attach the
     # console handler when there's a real stream to write to.
     if sys.stdout is not None:
@@ -76,7 +121,7 @@ def _setup_logging() -> logging.Logger:
         ch.setFormatter(logging.Formatter("%(levelname)s  %(message)s"))
         logger.addHandler(ch)
     logger.info(f"CivAdvisor starting — log: {log_path}")
-    logger.info(f"Log directory: {log_dir}")
+    logger.info(f"Log directory: {LOG_DIR}")
     return logger
 
 log = _setup_logging()
@@ -90,12 +135,12 @@ sys.excepthook = _handle_uncaught
 try:
     from PySide6.QtCore import (
         Qt, QThread, Signal, QPropertyAnimation, QEasingCurve, QPoint,
-        QParallelAnimationGroup, QTimer,
+        QParallelAnimationGroup, QTimer, QUrl,
     )
-    from PySide6.QtGui import QColor, QFont, QGuiApplication
+    from PySide6.QtGui import QColor, QFont, QGuiApplication, QDesktopServices
     from PySide6.QtWidgets import (
         QApplication, QWidget, QFrame, QLabel, QVBoxLayout, QHBoxLayout,
-        QScrollArea, QGraphicsDropShadowEffect,
+        QScrollArea, QGraphicsDropShadowEffect, QPlainTextEdit, QPushButton,
     )
 except Exception:
     log.critical("Failed to import PySide6 — is it installed?\n" + traceback.format_exc())
@@ -410,6 +455,96 @@ class TipCard(QFrame):
             self.setToolTip(full)        # full detail on hover
 
 
+# ── Live log viewer ──────────────────────────────────────────────────────────
+
+class LogViewer(QWidget):
+    """Standalone, resizable window that tails the in-memory log buffer live."""
+
+    def __init__(self, buffer: RingLogHandler, log_dir: str):
+        super().__init__()
+        self._buf = buffer
+        self._idx = 0
+        self._log_dir = log_dir
+
+        self.setWindowTitle("CivAdvisor — Live Logs")
+        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
+        self.resize(760, 440)
+        self.setStyleSheet(f"background:{BG_BOT};")
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(10, 10, 10, 10)
+        root.setSpacing(8)
+
+        bar = QHBoxLayout()
+        title = QLabel("Live logs (DEBUG)")
+        title.setStyleSheet(f"color:{TEXT_HI};font-size:12px;font-weight:800;")
+        bar.addWidget(title)
+        bar.addStretch(1)
+
+        self._autoscroll = True
+        self._auto_btn = QPushButton("Auto-scroll: on")
+        self._auto_btn.setCursor(Qt.PointingHandCursor)
+        self._auto_btn.clicked.connect(self._toggle_autoscroll)
+        folder_btn = QPushButton("Open log folder")
+        folder_btn.setCursor(Qt.PointingHandCursor)
+        folder_btn.clicked.connect(self._open_folder)
+        clear_btn = QPushButton("Clear view")
+        clear_btn.setCursor(Qt.PointingHandCursor)
+        clear_btn.clicked.connect(self._clear_view)
+        btn_css = (f"QPushButton{{color:{TEXT_HI};background:{CARD_BG3};border:1px solid {BORDER};"
+                   f"border-radius:7px;padding:4px 10px;font-size:11px;}}"
+                   f"QPushButton:hover{{background:{CARD_BG2};}}")
+        for b in (self._auto_btn, folder_btn, clear_btn):
+            b.setStyleSheet(btn_css)
+            bar.addWidget(b)
+        root.addLayout(bar)
+
+        self.text = QPlainTextEdit()
+        self.text.setReadOnly(True)
+        self.text.setMaximumBlockCount(20000)
+        self.text.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.text.setStyleSheet(
+            f"QPlainTextEdit{{background:#0A0A0D;color:{TEXT_HI};border:1px solid {BORDER};"
+            f"border-radius:8px;padding:6px;}}")
+        self.text.setFont(QFont("Consolas", 9))
+        root.addWidget(self.text, 1)
+
+        self._timer = QTimer(self)
+        self._timer.setInterval(400)
+        self._timer.timeout.connect(self._poll)
+
+    def _toggle_autoscroll(self):
+        self._autoscroll = not self._autoscroll
+        self._auto_btn.setText(f"Auto-scroll: {'on' if self._autoscroll else 'off'}")
+
+    def _open_folder(self):
+        QDesktopServices.openUrl(QUrl.fromLocalFile(self._log_dir))
+
+    def _clear_view(self):
+        self.text.clear()
+
+    def _poll(self):
+        lines, self._idx = self._buf.since(self._idx)
+        if not lines:
+            return
+        sb = self.text.verticalScrollBar()
+        at_bottom = sb.value() >= sb.maximum() - 4
+        self.text.appendPlainText("\n".join(lines))
+        if self._autoscroll and at_bottom:
+            sb.setValue(sb.maximum())
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        self._poll()
+        self.text.verticalScrollBar().setValue(self.text.verticalScrollBar().maximum())
+        if not self._timer.isActive():
+            self._timer.start()
+
+    def closeEvent(self, e):
+        self._timer.stop()
+        super().closeEvent(e)
+
+
 # ── Main overlay window ─────────────────────────────────────────────────────
 
 class AdvisorWindow(QWidget):
@@ -430,6 +565,7 @@ class AdvisorWindow(QWidget):
         self._focus_pills = {}
         self._stat_chips  = {}
         self._spin_frame  = 0
+        self._log_viewer  = None
 
         screen = QGuiApplication.primaryScreen().geometry()
         self.scr_w, self.scr_h = screen.width(), screen.height()
@@ -514,6 +650,13 @@ class AdvisorWindow(QWidget):
         self.turn_pill.setStyleSheet(
             f"color:{ACCENT};background:{CARD_BG3};border-radius:9px;"
             f"padding:2px 9px;font-size:10px;font-weight:700;")
+        logs = QLabel("Logs")
+        logs.setToolTip("Open the live log viewer")
+        logs.setStyleSheet(
+            f"color:{TEXT_MID};background:{CARD_BG3};border-radius:9px;"
+            f"padding:2px 9px;font-size:10px;font-weight:700;")
+        logs.setCursor(Qt.PointingHandCursor)
+        logs.mousePressEvent = self._on_logs_click
         close = QLabel("✕")
         close.setStyleSheet(f"color:{TEXT_LO};font-size:13px;")
         close.setCursor(Qt.PointingHandCursor)
@@ -521,6 +664,8 @@ class AdvisorWindow(QWidget):
         header.addWidget(brand)
         header.addStretch(1)
         header.addWidget(self.turn_pill)
+        header.addSpacing(6)
+        header.addWidget(logs)
         header.addSpacing(8)
         header.addWidget(close)
         c.addLayout(header)
@@ -712,7 +857,12 @@ class AdvisorWindow(QWidget):
 
     def _on_state(self, state: dict):
         self._last_state = state
+        log.debug(f"State received — turn={state.get('turn')} gold={state.get('gold')} "
+                  f"sci={state.get('science')} cul={state.get('culture')} "
+                  f"faith={state.get('faith')} cities={len(state.get('cityData', []))}")
         report = self._compute(state)
+        log.debug(f"Report — headline={report.get('headline')!r} "
+                  f"tips={len(report.get('tips', []))} strongest={report.get('strongest')}")
 
         turn = state.get("turn")
         new_turn = (turn != self._last_turn)
@@ -930,12 +1080,22 @@ class AdvisorWindow(QWidget):
             self._save_cfg()
             self._drag = None
 
+    def _on_logs_click(self, e):
+        log.debug("Opening live log viewer")
+        if self._log_viewer is None:
+            self._log_viewer = LogViewer(LOG_BUFFER, LOG_DIR)
+        self._log_viewer.show()
+        self._log_viewer.raise_()
+        self._log_viewer.activateWindow()
+
     def _on_close_click(self, e):
         self._user_closed = True
         self.pop_out()
 
     def closeEvent(self, e):
         self.watcher.stop()
+        if self._log_viewer is not None:
+            self._log_viewer.close()
         super().closeEvent(e)
 
 
