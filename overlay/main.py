@@ -152,12 +152,37 @@ import board
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-LUA_LOG_PATH = os.path.expandvars(
-    r"%LOCALAPPDATA%\Firaxis Games\Sid Meier's Civilization VI\Logs\Lua.log"
-)
+# Civ VI's Lua.log lives in the user's "My Games" folder, NOT %LOCALAPPDATA%.
+# Documents can be redirected (OneDrive), and some installs differ, so probe a
+# list of candidates and pick the newest one that exists. An explicit override
+# via the CIVADVISOR_LUA_LOG env var or the UI config ("logPath") wins.
+
+_LOG_SUBPATH = os.path.join("My Games", "Sid Meier's Civilization VI", "Logs", "Lua.log")
+
+
+def lua_log_candidates() -> list:
+    home  = os.path.expanduser("~")
+    local = os.environ.get("LOCALAPPDATA", "")
+    one   = os.environ.get("OneDrive") or os.path.join(home, "OneDrive")
+    cands = [
+        os.path.join(home, "Documents", _LOG_SUBPATH),
+        os.path.join(one, "Documents", _LOG_SUBPATH),
+        os.path.join(home, _LOG_SUBPATH),
+    ]
+    if local:
+        cands.append(os.path.join(
+            local, "Firaxis Games", "Sid Meier's Civilization VI", "Logs", "Lua.log"))
+    # De-dup, preserving order.
+    seen, out = set(), []
+    for p in cands:
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
 STATE_TAG   = "CIV_ADVISOR_STATE:"
 TURNEND_TAG = "CIV_ADVISOR_TURNEND"
-log.info(f"Watching Lua log at: {LUA_LOG_PATH}")
 
 UI_CFG_PATH = os.path.join(_data_dir(), "civadvisor_ui.json")
 
@@ -214,13 +239,22 @@ class LogWatcher(QThread):
     state_ready = Signal(object)
     turn_ended  = Signal()
 
-    def __init__(self, path: str):
+    def __init__(self, candidates, override: str = ""):
         super().__init__()
-        self.path  = path
+        self.candidates = [override] if override else list(candidates)
+        self.override = override
+        self.path = None
         self._stop = threading.Event()
 
     def stop(self):
         self._stop.set()
+
+    def _resolve(self):
+        """Pick the newest existing candidate, or None if none exist yet."""
+        existing = [p for p in self.candidates if p and os.path.exists(p)]
+        if not existing:
+            return None
+        return max(existing, key=lambda p: os.path.getmtime(p))
 
     @staticmethod
     def _parse_turn(line):
@@ -251,27 +285,40 @@ class LogWatcher(QThread):
         return None
 
     def run(self):
+        log.info("Lua.log candidates (newest existing wins):")
+        for p in self.candidates:
+            log.info(f"    {'[exists] ' if os.path.exists(p) else '[missing] '}{p}")
+
         pos = 0
-        if os.path.exists(self.path):
+        self.path = self._resolve()
+        if self.path:
             with open(self.path, "r", encoding="utf-8", errors="replace") as f:
                 f.seek(0, 2)
                 pos = f.tell()
-            log.debug(f"Lua.log found — at byte {pos}")
+            log.info(f"Watching Lua.log: {self.path} (at byte {pos})")
         else:
-            log.warning(f"Lua.log not found at startup: {self.path}")
+            log.warning("Lua.log not found yet — will keep checking each candidate.")
 
         buf = None            # current snapshot being assembled
         last_sig = None
         missing_warned = False
         while not self._stop.is_set():
             try:
-                if not os.path.exists(self.path):
-                    if not missing_warned:
-                        log.warning(f"Lua.log missing, waiting: {self.path}")
-                        missing_warned = True
-                    time.sleep(2)
-                    continue
-                missing_warned = False
+                if self.path is None or not os.path.exists(self.path):
+                    found = self._resolve()
+                    if found:
+                        self.path = found
+                        pos = 0      # read from start to grab the latest snapshot
+                        missing_warned = False
+                        log.info(f"Lua.log appeared: {self.path} — reading from start")
+                    else:
+                        if not missing_warned:
+                            log.warning("Lua.log still missing. Is Civ VI logging enabled "
+                                        "and the mod active? Checked: "
+                                        + " | ".join(self.candidates))
+                            missing_warned = True
+                        time.sleep(2)
+                        continue
                 with open(self.path, "r", encoding="utf-8", errors="replace") as f:
                     f.seek(pos)
                     lines = f.readlines()
@@ -589,7 +636,8 @@ class AdvisorWindow(QWidget):
         self._render_content()        # show the waiting state immediately
         self._refit()
 
-        self.watcher = LogWatcher(LUA_LOG_PATH)
+        override = os.environ.get("CIVADVISOR_LUA_LOG") or cfg.get("logPath", "")
+        self.watcher = LogWatcher(lua_log_candidates(), override.strip())
         self.watcher.state_ready.connect(self._on_state)
         self.watcher.turn_ended.connect(self._on_turn_end)
         self.watcher.start()
