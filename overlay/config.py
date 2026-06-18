@@ -24,18 +24,20 @@ MODE_AI     = "ai_engine"       # engine + an AI "Commander's Note"
 VALID_MODES = (MODE_ENGINE, MODE_AI)
 
 # AI providers (all free-tier capable)
-PROVIDER_GEMINI = "gemini"
-PROVIDER_GROQ   = "groq"
-PROVIDER_OLLAMA = "ollama"
-VALID_PROVIDERS = (PROVIDER_GEMINI, PROVIDER_GROQ, PROVIDER_OLLAMA)
+PROVIDER_GEMINI      = "gemini"
+PROVIDER_GROQ        = "groq"
+PROVIDER_OLLAMA      = "ollama"
+PROVIDER_OPENROUTER  = "openrouter"
+VALID_PROVIDERS = (PROVIDER_GEMINI, PROVIDER_GROQ, PROVIDER_OLLAMA, PROVIDER_OPENROUTER)
 
 VALID_FOCUS = ("auto", "science", "culture", "domination", "religion", "diplomacy")
 
 # Sensible per-provider defaults (free models, no card required where noted).
 PROVIDER_DEFAULTS = {
-    PROVIDER_GEMINI: {"model": "gemini-2.0-flash", "endpoint": ""},
-    PROVIDER_GROQ:   {"model": "llama-3.3-70b-versatile", "endpoint": ""},
-    PROVIDER_OLLAMA: {"model": "llama3.1", "endpoint": "http://localhost:11434"},
+    PROVIDER_GEMINI:     {"model": "gemini-2.0-flash",                    "endpoint": ""},
+    PROVIDER_GROQ:       {"model": "llama-3.3-70b-versatile",             "endpoint": ""},
+    PROVIDER_OLLAMA:     {"model": "llama3.1",                            "endpoint": "http://localhost:11434"},
+    PROVIDER_OPENROUTER: {"model": "meta-llama/llama-3.3-70b-instruct:free", "endpoint": ""},
 }
 
 
@@ -58,7 +60,7 @@ class Config:
         self.focus = "auto"
         # Advisor
         self.mode = MODE_ENGINE
-        self.provider = PROVIDER_GEMINI
+        self.provider = PROVIDER_OPENROUTER
         self.api_keys = {p: "" for p in VALID_PROVIDERS}    # per-provider keys
         self.ai_models = {p: PROVIDER_DEFAULTS[p]["model"] for p in VALID_PROVIDERS}
         self.ollama_endpoint = PROVIDER_DEFAULTS[PROVIDER_OLLAMA]["endpoint"]
@@ -95,9 +97,9 @@ class Config:
         cfg.mode = raw.get("mode", MODE_ENGINE)
         if cfg.mode not in VALID_MODES:
             cfg.mode = MODE_ENGINE
-        cfg.provider = raw.get("provider", PROVIDER_GEMINI)
+        cfg.provider = raw.get("provider", PROVIDER_OPENROUTER)
         if cfg.provider not in VALID_PROVIDERS:
-            cfg.provider = PROVIDER_GEMINI
+            cfg.provider = PROVIDER_OPENROUTER
 
         keys = raw.get("api_keys", {})
         if isinstance(keys, dict):
