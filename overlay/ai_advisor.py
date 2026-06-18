@@ -120,6 +120,26 @@ def query_groq(prompt: str, api_key: str, model: str) -> str:
     return choices[0].get("message", {}).get("content", "").strip()
 
 
+def query_openrouter(prompt: str, api_key: str, model: str) -> str:
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7, "max_tokens": 200,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+        "HTTP-Referer": "https://github.com/tobias-jermain/CivAdvisor",
+        "X-Title": "CivAdvisor",
+    }
+    data = _http_post(url, payload, headers)
+    choices = data.get("choices", [])
+    if not choices:
+        raise RuntimeError("OpenRouter returned no choices")
+    return choices[0].get("message", {}).get("content", "").strip()
+
+
 def query_ollama(prompt: str, endpoint: str, model: str) -> str:
     base = (endpoint or "http://localhost:11434").rstrip("/")
     url = f"{base}/api/generate"
@@ -141,6 +161,10 @@ def query(provider: str, prompt: str, *, api_key: str = "", model: str = "",
         return query_groq(prompt, api_key, model or "llama-3.3-70b-versatile")
     if provider == cfg_mod.PROVIDER_OLLAMA:
         return query_ollama(prompt, endpoint, model or "llama3.1")
+    if provider == cfg_mod.PROVIDER_OPENROUTER:
+        if not api_key:
+            raise RuntimeError("No OpenRouter API key set")
+        return query_openrouter(prompt, api_key, model or "meta-llama/llama-3.3-70b-instruct:free")
     raise RuntimeError(f"Unknown provider: {provider}")
 
 

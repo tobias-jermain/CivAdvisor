@@ -39,17 +39,20 @@ log = logging.getLogger("civadvisor")
 PANEL_W = 372
 
 PROVIDER_LABELS = {
-    cfg_mod.PROVIDER_GEMINI: "Gemini (Google AI Studio)",
-    cfg_mod.PROVIDER_GROQ:   "Groq (LLaMA 3, very fast)",
-    cfg_mod.PROVIDER_OLLAMA: "Ollama (local, no key)",
+    cfg_mod.PROVIDER_OPENROUTER: "OpenRouter (recommended — many free models)",
+    cfg_mod.PROVIDER_GEMINI:     "Gemini (Google AI Studio)",
+    cfg_mod.PROVIDER_GROQ:       "Groq (LLaMA 3, very fast)",
+    cfg_mod.PROVIDER_OLLAMA:     "Ollama (local, no key)",
 }
 PROVIDER_HELP = {
-    cfg_mod.PROVIDER_GEMINI: ("Free key, no credit card — aistudio.google.com/apikey",
-                              "https://aistudio.google.com/apikey"),
-    cfg_mod.PROVIDER_GROQ:   ("Free key — console.groq.com/keys",
-                              "https://console.groq.com/keys"),
-    cfg_mod.PROVIDER_OLLAMA: ("Install & run Ollama locally — ollama.com",
-                              "https://ollama.com"),
+    cfg_mod.PROVIDER_OPENROUTER: ("Free key, 50+ free models — openrouter.ai/keys",
+                                  "https://openrouter.ai/keys"),
+    cfg_mod.PROVIDER_GEMINI:     ("Free key, no credit card — aistudio.google.com/apikey",
+                                  "https://aistudio.google.com/apikey"),
+    cfg_mod.PROVIDER_GROQ:       ("Free key — console.groq.com/keys",
+                                  "https://console.groq.com/keys"),
+    cfg_mod.PROVIDER_OLLAMA:     ("Install & run Ollama locally — ollama.com",
+                                  "https://ollama.com"),
 }
 
 _INPUT_CSS = (
