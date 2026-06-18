@@ -148,6 +148,10 @@ except Exception:
 
 import advisor_engine
 import board
+import config as cfg_mod
+import ai_advisor
+from settings_panel import SettingsPanel
+from tray import make_tray
 
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -189,34 +193,15 @@ UI_CFG_PATH = os.path.join(_data_dir(), "civadvisor_ui.json")
 
 # ── Design tokens (Wispr-Flow inspired) ─────────────────────────────────────
 
-CARD_W     = 326          # narrower, lighter footprint
-MARGIN     = 22           # room for the drop shadow
-SHADOW_R   = 30
-TIPS_W     = CARD_W - 46
-MAX_SCROLL = 400          # content area caps here, then scrolls
-RISE       = 22           # pulse-up travel distance
-
-BG_TOP   = "#1A1A20"
-BG_BOT   = "#0D0D11"
-CARD_BG2 = "#1C1C24"
-CARD_BG3 = "#23232C"
-ACCENT   = "#5B8AF5"
-WARM     = "#E8874A"
-GOOD     = "#3ECF6C"
-TEXT_HI  = "#ECECF1"
-TEXT_MID = "#9A9AAB"
-TEXT_LO  = "#5A5A6C"
-BORDER   = "#2A2A35"
+from theme import (
+    CARD_W, MARGIN, SHADOW_R, TIPS_W, MAX_SCROLL, RISE,
+    BG_TOP, BG_BOT, CARD_BG2, CARD_BG3, ACCENT, WARM, GOOD,
+    TEXT_HI, TEXT_MID, TEXT_LO, BORDER, AI_ACCENT,
+    VICTORY_COLOURS, TYPE_COLOURS, TYPE_ICONS,
+)
 
 # Spinner frames for the "turn is changing" loading state.
 SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-
-VICTORY_COLOURS = {
-    "science": "#5B8AF5", "culture": "#C06BE8", "domination": "#E85A6B",
-    "religion": "#E8C24A", "diplomacy": "#3ECF6C",
-}
-TYPE_COLOURS = {"warn": WARM, "good": GOOD, "info": ACCENT}
-TYPE_ICONS   = {"warn": "⚠", "good": "✓", "info": "→"}
 
 # Focus selector — short labels for the pill row, full names for tooltips.
 FOCUS_OPTIONS = [
@@ -317,7 +302,7 @@ class LogWatcher(QThread):
                                         "and the mod active? Checked: "
                                         + " | ".join(self.candidates))
                             missing_warned = True
-                        time.sleep(2)
+                        self._stop.wait(2)        # responsive to stop()
                         continue
                 with open(self.path, "r", encoding="utf-8", errors="replace") as f:
                     f.seek(pos)
@@ -595,12 +580,13 @@ class LogViewer(QWidget):
 # ── Main overlay window ─────────────────────────────────────────────────────
 
 class AdvisorWindow(QWidget):
-    def __init__(self):
+    def __init__(self, cfg: cfg_mod.Config):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
 
+        self.cfg = cfg
         self._visible     = False
         self._user_closed = False
         self._last_turn   = None
@@ -613,18 +599,24 @@ class AdvisorWindow(QWidget):
         self._stat_chips  = {}
         self._spin_frame  = 0
         self._log_viewer  = None
+        self._settings    = None
+        self._tray        = None
+
+        # AI "Commander's Note" state: None | "loading" | "ok" | "fail"
+        self._ai_state  = None
+        self._ai_text   = ""
+        self._ai_worker = None
+        self._ai_turn   = None
 
         screen = QGuiApplication.primaryScreen().geometry()
         self.scr_w, self.scr_h = screen.width(), screen.height()
         self.win_w = CARD_W + MARGIN * 2
         self.setFixedWidth(self.win_w)
 
-        cfg = self._load_cfg()
-        self._pos_x = int(cfg.get("x", self.scr_w - 12 - self.win_w + MARGIN))
-        self._pos_y = int(cfg.get("y", 56))
-        self._focus = cfg.get("focus", "auto")
-        if self._focus not in FOCUS_FULL:
-            self._focus = "auto"
+        self._pos_x = int(cfg.x if cfg.x is not None else self.scr_w - 12 - self.win_w + MARGIN)
+        self._pos_y = int(cfg.y if cfg.y is not None else 56)
+        self._focus = cfg.focus if cfg.focus in FOCUS_FULL else "auto"
+        self._target_opacity = max(0.5, min(1.0, cfg.opacity))
 
         # Spinner timer — drives the loading glyphs while the turn is changing.
         self._spin_timer = QTimer(self)
@@ -636,32 +628,36 @@ class AdvisorWindow(QWidget):
         self._render_content()        # show the waiting state immediately
         self._refit()
 
-        override = os.environ.get("CIVADVISOR_LUA_LOG") or cfg.get("logPath", "")
-        self.watcher = LogWatcher(lua_log_candidates(), override.strip())
+        override = os.environ.get("CIVADVISOR_LUA_LOG") or cfg.log_path
+        self.watcher = LogWatcher(lua_log_candidates(), (override or "").strip())
         self.watcher.state_ready.connect(self._on_state)
         self.watcher.turn_ended.connect(self._on_turn_end)
         self.watcher.start()
-        log.info(f"UI ready — watcher started (focus={self._focus})")
+        log.info(f"UI ready — watcher started (focus={self._focus}, mode={cfg.mode})")
 
         # Show the window right away so it's obvious the app is running, even
         # before the game produces any state.
         self.pop_in()
 
-    # ── Config persistence (position + focus) ─────────────────────────────────
-
-    def _load_cfg(self) -> dict:
-        try:
-            with open(UI_CFG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
+    # ── Config persistence ─────────────────────────────────────────────────────
 
     def _save_cfg(self):
-        try:
-            with open(UI_CFG_PATH, "w", encoding="utf-8") as f:
-                json.dump({"x": self._pos_x, "y": self._pos_y, "focus": self._focus}, f)
-        except Exception:
-            pass
+        self.cfg.x = self._pos_x
+        self.cfg.y = self._pos_y
+        self.cfg.focus = self._focus
+        self.cfg.save()
+
+    def apply_prefs(self):
+        """Re-apply live preferences after the settings panel changes them."""
+        self._target_opacity = max(0.5, min(1.0, self.cfg.opacity))
+        if self._visible:
+            self.setWindowOpacity(self._target_opacity)
+        # If AI mode was just turned off, drop any pending note.
+        if not self.cfg.ai_enabled:
+            self._ai_state, self._ai_text = None, ""
+            if self._tab == "now":
+                self._render_content()
+                QTimer.singleShot(0, self._refit)
 
     # ── Build UI ──────────────────────────────────────────────────────────────
 
@@ -705,6 +701,13 @@ class AdvisorWindow(QWidget):
             f"padding:2px 9px;font-size:10px;font-weight:700;")
         logs.setCursor(Qt.PointingHandCursor)
         logs.mousePressEvent = self._on_logs_click
+        gear = QLabel("⚙")
+        gear.setToolTip("Settings")
+        gear.setStyleSheet(
+            f"color:{TEXT_MID};background:{CARD_BG3};border-radius:9px;"
+            f"padding:2px 8px;font-size:11px;font-weight:700;")
+        gear.setCursor(Qt.PointingHandCursor)
+        gear.mousePressEvent = self._on_settings_click
         close = QLabel("✕")
         close.setStyleSheet(f"color:{TEXT_LO};font-size:13px;")
         close.setCursor(Qt.PointingHandCursor)
@@ -714,6 +717,8 @@ class AdvisorWindow(QWidget):
         header.addWidget(self.turn_pill)
         header.addSpacing(6)
         header.addWidget(logs)
+        header.addSpacing(5)
+        header.addWidget(gear)
         header.addSpacing(8)
         header.addWidget(close)
         c.addLayout(header)
@@ -825,6 +830,88 @@ class AdvisorWindow(QWidget):
                     "strongest": "", "tips":
                     [{"type": "warn", "title": "Internal error", "body": "Check logs.", "tab": "now"}]}
 
+    # ── AI Commander's Note ────────────────────────────────────────────────────
+
+    def _start_ai(self, state: dict, report: dict, turn):
+        """Kick off the background LLM call for this turn (non-blocking)."""
+        if self._ai_worker is not None and self._ai_worker.isRunning():
+            return
+        self._ai_turn  = turn
+        self._ai_state = "loading"
+        self._ai_text  = ""
+        try:
+            prompt = ai_advisor.build_prompt(state, report)
+            worker = ai_advisor.AiWorker(
+                self.cfg.provider, prompt,
+                api_key=self.cfg.current_key(),
+                model=self.cfg.current_model(),
+                endpoint=self.cfg.ollama_endpoint)
+            worker.done.connect(self._on_ai_done)
+            worker.failed.connect(self._on_ai_failed)
+            self._ai_worker = worker
+            worker.start()
+            log.info(f"AI note requested via {self.cfg.provider} for turn {turn}")
+        except Exception:
+            log.error("Failed to start AI worker:\n" + traceback.format_exc())
+            self._ai_state, self._ai_text = "fail", "AI note unavailable this turn."
+
+    def _on_ai_done(self, text: str):
+        self._ai_state, self._ai_text = "ok", text
+        if self._tab == "now":
+            self._render_content()
+            QTimer.singleShot(0, self._refit)
+
+    def _on_ai_failed(self, msg: str):
+        self._ai_state, self._ai_text = "fail", msg
+        if self._tab == "now":
+            self._render_content()
+            QTimer.singleShot(0, self._refit)
+
+    def _ai_card(self) -> QFrame:
+        """A distinct, indigo-accented card for the AI insight / its status."""
+        card = QFrame()
+        card.setFixedWidth(TIPS_W)
+        card.setStyleSheet(
+            f"QFrame{{background:{CARD_BG2};border:1px solid {AI_ACCENT};border-radius:10px;}}")
+        outer = QHBoxLayout(card)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        bar = QFrame()
+        bar.setFixedWidth(3)
+        bar.setStyleSheet(f"background:{AI_ACCENT};border-top-left-radius:10px;"
+                          f"border-bottom-left-radius:10px;")
+        outer.addWidget(bar)
+        body = QVBoxLayout()
+        body.setContentsMargins(12, 10, 12, 11)
+        body.setSpacing(4)
+
+        head = QHBoxLayout()
+        head.setSpacing(7)
+        badge = QLabel("✦ AI")
+        badge.setStyleSheet(f"color:{AI_ACCENT};font-size:11px;font-weight:800;")
+        title = QLabel("Commander's Note")
+        title.setStyleSheet(f"color:{TEXT_HI};font-size:12px;font-weight:700;")
+        head.addWidget(badge, 0, Qt.AlignTop)
+        head.addWidget(title, 1)
+        body.addLayout(head)
+
+        if self._ai_state == "loading":
+            msg = "Thinking…"
+            colour = TEXT_MID
+        elif self._ai_state == "fail":
+            msg = self._ai_text or "AI note unavailable this turn."
+            colour = WARM
+        else:
+            msg = self._ai_text
+            colour = TEXT_MID
+        txt = QLabel(msg)
+        txt.setWordWrap(True)
+        txt.setFixedWidth(TIPS_W - 3 - 24)
+        txt.setStyleSheet(f"color:{colour};font-size:11px;")
+        body.addWidget(txt)
+        outer.addLayout(body)
+        return card
+
     # ── Stats + loading spinner ───────────────────────────────────────────────
 
     def _update_stats(self, state: dict):
@@ -918,6 +1005,12 @@ class AdvisorWindow(QWidget):
         if new_turn:
             self._tab = "now"        # each new turn, lead with what's urgent
 
+        # AI Commander's Note — fire once per turn when AI mode is enabled.
+        if self.cfg.ai_enabled and (new_turn or self._ai_turn != turn):
+            self._start_ai(state, report, turn)
+        elif not self.cfg.ai_enabled:
+            self._ai_state, self._ai_text = None, ""
+
         self._render(state, report)
 
         if new_turn:
@@ -980,6 +1073,9 @@ class AdvisorWindow(QWidget):
         head.setStyleSheet(f"color:{TEXT_HI};background:{CARD_BG2};border:1px solid {BORDER};"
                            f"border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700;")
         self.content_box.addWidget(head)
+        # AI Commander's Note sits directly under the headline when enabled.
+        if self.cfg.ai_enabled and self._ai_state is not None:
+            self.content_box.addWidget(self._ai_card())
         tips = self._tips_for("now")
         if tips:
             for t in tips:
@@ -1076,7 +1172,7 @@ class AdvisorWindow(QWidget):
         self.move(x, y + RISE)
         self.show()
         self.raise_()
-        self._run_anim(QPoint(x, y + RISE), QPoint(x, y), 0.0, 1.0,
+        self._run_anim(QPoint(x, y + RISE), QPoint(x, y), 0.0, self._target_opacity,
                        QEasingCurve.OutBack)
 
     def pop_out(self):
@@ -1136,14 +1232,29 @@ class AdvisorWindow(QWidget):
         self._log_viewer.raise_()
         self._log_viewer.activateWindow()
 
+    def _on_settings_click(self, e):
+        if self._settings is None:
+            self._settings = SettingsPanel(self.cfg)
+            self._settings.changed.connect(self.apply_prefs)
+        self._settings.toggle()
+
     def _on_close_click(self, e):
         self._user_closed = True
         self.pop_out()
 
-    def closeEvent(self, e):
+    def shutdown(self):
+        """Full quit — stop threads and close auxiliary windows."""
         self.watcher.stop()
+        self.watcher.wait(1500)          # let the poll loop exit cleanly
+        if self._ai_worker is not None and self._ai_worker.isRunning():
+            self._ai_worker.wait(1500)
         if self._log_viewer is not None:
             self._log_viewer.close()
+        if self._settings is not None:
+            self._settings.close()
+
+    def closeEvent(self, e):
+        self.shutdown()
         super().closeEvent(e)
 
 
@@ -1153,7 +1264,26 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setFont(QFont("Segoe UI", 9))
-    AdvisorWindow()
+
+    cfg = cfg_mod.Config.load(UI_CFG_PATH)
+    win = AdvisorWindow(cfg)
+
+    def _show():
+        win._user_closed = False
+        win.pop_in()
+
+    def _quit():
+        win.shutdown()
+        app.quit()
+
+    win._tray = make_tray(
+        app.windowIcon(),
+        on_show=_show,
+        on_settings=lambda: win._on_settings_click(None),
+        on_logs=lambda: win._on_logs_click(None),
+        on_quit=_quit,
+    )
+
     sys.exit(app.exec())
 
 
