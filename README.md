@@ -91,6 +91,22 @@ Position and victory focus are saved to `civadvisor_ui.json` in the working dire
 
 Edit or delete to reset. Design tokens (colors, spacing, fonts) are hardcoded in `main.py:BG_TOP`, `ACCENT`, etc.
 
+## Multiplayer (FireTuner, no mod required)
+
+Civ VI multiplayer requires every player in the lobby to have the same enabled
+mods, so the installed mod can't be used unless all players install it. To get
+the same data in multiplayer **without anyone else installing anything**, use
+the FireTuner exporter — it runs only on your local client:
+
+1. Install **Sid Meier's Civilization VI Development Tools** (free, on Steam).
+2. In `AppOptions.txt` set `EnableTuner 1`.
+3. Launch the game, enter your match, then open **FireTuner** and connect.
+4. Load `firetuner/CivAdvisor_Tuner.lua` against the **InGame** context and run it.
+
+It prints the same `CIV_ADVISOR_...` lines to `Lua.log`, so the overlay works
+unchanged. It's read-only and print-only — multiplayer-safe, no desync, no
+gameplay effect. Call `CivAdvisorDump()` in the console to force a refresh.
+
 ## Accuracy Notes
 
 - Victory percentages are **estimates** based on available Lua signals, not official game math.
