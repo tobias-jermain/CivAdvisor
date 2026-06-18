@@ -1030,8 +1030,15 @@ class AdvisorWindow(QWidget):
             self._tab = "now"        # each new turn, lead with what's urgent
 
         # Auto-execute — write commands file once per new turn when enabled.
-        if new_turn and self.cfg.auto_execute:
-            cmds = auto_controller.derive_commands(state, self._focus)
+        any_auto = (self.cfg.auto_execute or self.cfg.auto_production
+                    or self.cfg.auto_policies or self.cfg.auto_units)
+        if new_turn and any_auto:
+            cmds = auto_controller.derive_commands(
+                state, self._focus,
+                research_civics=self.cfg.auto_execute,
+                production=self.cfg.auto_production,
+                policies=self.cfg.auto_policies,
+                units=self.cfg.auto_units)
             if cmds:
                 auto_controller.write_commands(int(turn or 0), cmds)
 

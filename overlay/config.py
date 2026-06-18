@@ -50,6 +50,7 @@ class Config:
         "mode", "provider", "api_keys", "ai_models", "ollama_endpoint",
         "opacity", "auto_show_on_turn", "minimize_to_tray",
         "log_path", "auto_execute",
+        "auto_production", "auto_policies", "auto_units",
     )
 
     def __init__(self, path: str):
@@ -71,7 +72,10 @@ class Config:
         # Data
         self.log_path = ""
         # Automation
-        self.auto_execute = False
+        self.auto_execute = False        # master: research + civics
+        self.auto_production = False     # fill empty city build queues
+        self.auto_policies = False       # fill empty policy slots
+        self.auto_units = False          # full unit tactics, incl. combat
 
     # ── Load / migrate ────────────────────────────────────────────────────────
 
@@ -118,6 +122,9 @@ class Config:
         cfg.minimize_to_tray = bool(raw.get("minimize_to_tray", True))
         cfg.log_path = str(raw.get("log_path", raw.get("logPath", "")) or "")
         cfg.auto_execute = bool(raw.get("auto_execute", False))
+        cfg.auto_production = bool(raw.get("auto_production", False))
+        cfg.auto_policies = bool(raw.get("auto_policies", False))
+        cfg.auto_units = bool(raw.get("auto_units", False))
         return cfg
 
     @staticmethod
@@ -144,6 +151,9 @@ class Config:
             "minimize_to_tray": self.minimize_to_tray,
             "log_path": self.log_path,
             "auto_execute": self.auto_execute,
+            "auto_production": self.auto_production,
+            "auto_policies": self.auto_policies,
+            "auto_units": self.auto_units,
         }
 
     def save(self):

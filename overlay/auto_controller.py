@@ -28,30 +28,39 @@ RESULTS_PREFIX = "CIV_ADVISOR_CMD_RESULT"
 
 # ── Command derivation ────────────────────────────────────────────────────────
 
-def derive_commands(state: dict, focus: str) -> list[dict]:
+def derive_commands(state: dict, focus: str, *, research_civics: bool = True,
+                    production: bool = False, policies: bool = False,
+                    units: bool = False) -> list[dict]:
     """Return the list of auto-execute commands for this turn.
 
-    Commands are only emitted when the game has nothing queued (research /
-    civic shows 'none') so we never overwrite a deliberate player choice.
+    Research and civic commands are only emitted when the game has nothing
+    queued (shows 'none') so we never overwrite a deliberate player choice.
+
+    Production / policy / unit directives are emitted unconditionally when
+    their toggle is on — the Lua mod enforces "fill empty only" for build
+    queues and policy slots, and only moves units that still have full
+    movement (i.e. the player hasn't ordered them this turn).
     """
     cmds: list[dict] = []
     turn = int(state.get("turn", 0))
+    f = focus or "auto"
 
-    cur_tech = (state.get("currentTech") or "none").strip().lower()
-    if cur_tech in ("none", "unknown", ""):
-        cmds.append({
-            "id": f"r_{turn}",
-            "type": "auto_research",
-            "focus": focus or "auto",
-        })
+    if research_civics:
+        cur_tech = (state.get("currentTech") or "none").strip().lower()
+        if cur_tech in ("none", "unknown", ""):
+            cmds.append({"id": f"r_{turn}", "type": "auto_research", "focus": f})
 
-    cur_civic = (state.get("currentCivic") or "none").strip().lower()
-    if cur_civic in ("none", "unknown", ""):
-        cmds.append({
-            "id": f"c_{turn}",
-            "type": "auto_civic",
-            "focus": focus or "auto",
-        })
+        cur_civic = (state.get("currentCivic") or "none").strip().lower()
+        if cur_civic in ("none", "unknown", ""):
+            cmds.append({"id": f"c_{turn}", "type": "auto_civic", "focus": f})
+
+    if production:
+        cmds.append({"id": f"p_{turn}", "type": "auto_production", "focus": f})
+    if policies:
+        cmds.append({"id": f"pol_{turn}", "type": "auto_policy", "focus": f})
+    if units:
+        # Combat is enabled as part of full unit tactics.
+        cmds.append({"id": f"u_{turn}", "type": "auto_units", "focus": f, "combat": "1"})
 
     return cmds
 
@@ -98,8 +107,15 @@ def result_label(result: dict) -> str:
     ok  = result.get("ok", False)
     typ = result.get("type", "")
     val = result.get("value", "")
+    mark = "✓" if ok else "✕"
     if typ == "auto_research":
-        return f"{'✓' if ok else '✕'} Research → {val or ('queued' if ok else 'failed')}"
+        return f"{mark} Research → {val or ('queued' if ok else 'failed')}"
     if typ == "auto_civic":
-        return f"{'✓' if ok else '✕'} Civic → {val or ('queued' if ok else 'failed')}"
-    return f"{'✓' if ok else '✕'} {typ}"
+        return f"{mark} Civic → {val or ('queued' if ok else 'failed')}"
+    if typ == "auto_production":
+        return f"{mark} Production → {val or ('done' if ok else 'none')}"
+    if typ == "auto_policy":
+        return f"{mark} Policies → {val or ('done' if ok else 'none')}"
+    if typ == "auto_units":
+        return f"{mark} Units → {val or ('moved' if ok else 'none')}"
+    return f"{mark} {typ}"
