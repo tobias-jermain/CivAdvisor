@@ -406,6 +406,11 @@ class SettingsPanel(QWidget):
     def _on_test(self):
         if self._test_worker is not None and self._test_worker.isRunning():
             return
+        # Flush whatever is currently typed into the key/endpoint/model fields
+        # before reading back from cfg — editingFinished may not have fired yet.
+        self._on_key_edit()
+        self._on_endpoint_edit()
+        self._on_model_edit()
         prov = self.cfg.provider
         self.test_status.setStyleSheet(f"color:{TEXT_MID};font-size:10px;")
         self.test_status.setText("Testing…")

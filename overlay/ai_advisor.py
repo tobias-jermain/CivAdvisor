@@ -30,7 +30,7 @@ import config as cfg_mod
 
 log = logging.getLogger("civadvisor")
 
-REQUEST_TIMEOUT = 8          # seconds — keep the note snappy or skip it
+REQUEST_TIMEOUT = None       # no hard timeout — let the OS/provider decide
 MAX_TIPS_IN_PROMPT = 3
 
 SYSTEM_PREAMBLE = (
