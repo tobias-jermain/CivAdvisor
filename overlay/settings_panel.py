@@ -249,6 +249,41 @@ class SettingsPanel(QWidget):
         self.cb_tray.toggled.connect(self._on_tray_toggle)
         lay.addWidget(self.cb_tray)
 
+        lay.addWidget(self._divider())
+
+        # Auto-execute
+        lay.addWidget(_section("AUTO-EXECUTE (EXPERIMENTAL)"))
+        self.cb_auto = QCheckBox("Auto-queue research & civics when nothing is set")
+        self.cb_auto.setStyleSheet(_CHECK_CSS)
+        self.cb_auto.setChecked(self.cfg.auto_execute)
+        self.cb_auto.toggled.connect(self._on_auto_toggle)
+        lay.addWidget(self.cb_auto)
+
+        self.cb_auto_prod = QCheckBox("Auto-fill empty city production queues")
+        self.cb_auto_prod.setStyleSheet(_CHECK_CSS)
+        self.cb_auto_prod.setChecked(self.cfg.auto_production)
+        self.cb_auto_prod.toggled.connect(self._on_auto_prod_toggle)
+        lay.addWidget(self.cb_auto_prod)
+
+        self.cb_auto_pol = QCheckBox("Auto-fill empty policy card slots")
+        self.cb_auto_pol.setStyleSheet(_CHECK_CSS)
+        self.cb_auto_pol.setChecked(self.cfg.auto_policies)
+        self.cb_auto_pol.toggled.connect(self._on_auto_pol_toggle)
+        lay.addWidget(self.cb_auto_pol)
+
+        self.cb_auto_units = QCheckBox("Auto-control units (tactics + combat)")
+        self.cb_auto_units.setStyleSheet(_CHECK_CSS)
+        self.cb_auto_units.setChecked(self.cfg.auto_units)
+        self.cb_auto_units.toggled.connect(self._on_auto_units_toggle)
+        lay.addWidget(self.cb_auto_units)
+
+        lay.addWidget(_hint(
+            "Requires the AutoAdvisor Lua mod active in-game. Production and "
+            "policies only fill empty slots; units that you've already moved "
+            "this turn are left alone. Unit control will attack — turn it off "
+            "if you want to fight manually."
+        ))
+
         lay.addStretch(1)
         return page
 
@@ -356,6 +391,26 @@ class SettingsPanel(QWidget):
     def _on_tray_toggle(self, checked: bool):
         self.cfg.minimize_to_tray = checked
         self.cfg.save()
+
+    def _on_auto_toggle(self, checked: bool):
+        self.cfg.auto_execute = checked
+        self.cfg.save()
+        self.changed.emit()
+
+    def _on_auto_prod_toggle(self, checked: bool):
+        self.cfg.auto_production = checked
+        self.cfg.save()
+        self.changed.emit()
+
+    def _on_auto_pol_toggle(self, checked: bool):
+        self.cfg.auto_policies = checked
+        self.cfg.save()
+        self.changed.emit()
+
+    def _on_auto_units_toggle(self, checked: bool):
+        self.cfg.auto_units = checked
+        self.cfg.save()
+        self.changed.emit()
 
     def _on_path_edit(self):
         self.cfg.log_path = self.path_edit.text().strip()

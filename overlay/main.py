@@ -150,6 +150,7 @@ import advisor_engine
 import board
 import config as cfg_mod
 import ai_advisor
+import auto_controller
 from settings_panel import SettingsPanel
 from tray import make_tray
 
@@ -223,6 +224,7 @@ FOCUS_FULL = {
 class LogWatcher(QThread):
     state_ready = Signal(object)
     turn_ended  = Signal()
+    cmd_result  = Signal(str)
 
     def __init__(self, candidates, override: str = ""):
         super().__init__()
@@ -311,6 +313,9 @@ class LogWatcher(QThread):
                 for line in lines:
                     if "CIV_ADVISOR_TURNEND" in line:
                         self.turn_ended.emit()
+                        continue
+                    if "CIV_ADVISOR_CMD_RESULT" in line:
+                        self.cmd_result.emit(line)
                         continue
                     if "CIV_ADVISOR_SNAP_BEGIN" in line:
                         buf = {"turn": self._parse_turn(line), "player": {},
@@ -632,6 +637,7 @@ class AdvisorWindow(QWidget):
         self.watcher = LogWatcher(lua_log_candidates(), (override or "").strip())
         self.watcher.state_ready.connect(self._on_state)
         self.watcher.turn_ended.connect(self._on_turn_end)
+        self.watcher.cmd_result.connect(self._on_cmd_result)
         self.watcher.start()
         log.info(f"UI ready — watcher started (focus={self._focus}, mode={cfg.mode})")
 
@@ -988,6 +994,24 @@ class AdvisorWindow(QWidget):
         rep = self._last_report or {}
         return [t for t in rep.get("tips", []) if t.get("tab", "plan") == tab][:6]
 
+    # ── Auto-execute result ───────────────────────────────────────────────────
+
+    def _on_cmd_result(self, line: str):
+        result = auto_controller.parse_result_line(line)
+        if not result:
+            return
+        label = auto_controller.result_label(result)
+        log.info(f"Auto-execute: {label}")
+        # Show a brief status update in the overlay footer.
+        colour = GOOD if result.get("ok") else WARM
+        self.status.setText(f"⚡ {label}  ·  {time.strftime('%H:%M')}")
+        self.status.setStyleSheet(f"color:{colour};font-size:9px;")
+        QTimer.singleShot(8000, self._reset_status)
+
+    def _reset_status(self):
+        self.status.setText(f"● Updated {time.strftime('%H:%M')}  ·  drag to move")
+        self.status.setStyleSheet(f"color:{GOOD};font-size:9px;")
+
     # ── State handling ────────────────────────────────────────────────────────
 
     def _on_state(self, state: dict):
@@ -1004,6 +1028,19 @@ class AdvisorWindow(QWidget):
         self._last_turn = turn
         if new_turn:
             self._tab = "now"        # each new turn, lead with what's urgent
+
+        # Auto-execute — write commands file once per new turn when enabled.
+        any_auto = (self.cfg.auto_execute or self.cfg.auto_production
+                    or self.cfg.auto_policies or self.cfg.auto_units)
+        if new_turn and any_auto:
+            cmds = auto_controller.derive_commands(
+                state, self._focus,
+                research_civics=self.cfg.auto_execute,
+                production=self.cfg.auto_production,
+                policies=self.cfg.auto_policies,
+                units=self.cfg.auto_units)
+            if cmds:
+                auto_controller.write_commands(int(turn or 0), cmds)
 
         # AI Commander's Note — fire once per turn when AI mode is enabled.
         if self.cfg.ai_enabled and (new_turn or self._ai_turn != turn):

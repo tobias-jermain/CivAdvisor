@@ -14,6 +14,8 @@
     <Files>
         <File>UI/CivAdvisor.xml</File>
         <File>UI/CivAdvisor.lua</File>
+        <File>UI/AutoAdvisor.xml</File>
+        <File>UI/AutoAdvisor.lua</File>
     </Files>
     <InGameActions>
         <AddUserInterfaces id="CivAdvisorUI">
@@ -21,6 +23,12 @@
                 <Context>InGame</Context>
             </Properties>
             <File>UI/CivAdvisor.xml</File>
+        </AddUserInterfaces>
+        <AddUserInterfaces id="AutoAdvisorUI">
+            <Properties>
+                <Context>InGame</Context>
+            </Properties>
+            <File>UI/AutoAdvisor.xml</File>
         </AddUserInterfaces>
     </InGameActions>
 </Mod>
