@@ -107,6 +107,33 @@ It prints the same `CIV_ADVISOR_...` lines to `Lua.log`, so the overlay works
 unchanged. It's read-only and print-only — multiplayer-safe, no desync, no
 gameplay effect. Call `CivAdvisorDump()` in the console to force a refresh.
 
+> Note: Civ VI **disables the Lua tuner in multiplayer**, so FireTuner only
+> works in single-player. For multiplayer, publish the mod to the Steam
+> Workshop (below) so every player can subscribe with one click.
+
+## Publishing to the Steam Workshop
+
+Multiplayer requires every player to have the host's enabled mods. The
+friction-free way to distribute is the Steam Workshop — players just click
+**Subscribe** (no file downloads), and Civ VI auto-syncs subscribed mods in
+multiplayer lobbies. Publish with ModBuddy (installed with the Dev Tools):
+
+1. Make sure the mod folder is in your Mods directory:
+   `Documents\My Games\Sid Meier's Civilization VI\Mods\CivAdvisor`
+   (the `CivAdvisor.modinfo` + `UI\` files from `lua_mod/`).
+2. Open **ModBuddy** (from the Civ VI Development Tools).
+3. **File → Import → Import existing mod**, and pick the `CivAdvisor` folder.
+   ModBuddy reads the metadata from `CivAdvisor.modinfo`.
+4. **Build** the project (Build → Build Solution).
+5. With **Steam running**, right-click the project → **Publish to Steam
+   Workshop** (first publish creates the Workshop item; later publishes update
+   it). Set visibility to Public (or Friends-only) and accept the agreement.
+6. Send friends the Workshop link → they click **Subscribe**, enable it once in
+   **Additional Content**, and can then join your modded multiplayer lobby.
+
+Only the host needs the overlay and `EnableTuner`; friends only need to be
+subscribed so the lobby's mod check passes.
+
 ## Accuracy Notes
 
 - Victory percentages are **estimates** based on available Lua signals, not official game math.

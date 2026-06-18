@@ -2,10 +2,14 @@
 <Mod id="a1b2c3d4-e5f6-7890-abcd-ef1234567890" version="1">
     <Properties>
         <Name>CivAdvisor State Export</Name>
-        <Description>Exports player state to Lua.log each turn for the CivAdvisor overlay.</Description>
+        <Teaser>Exports your game state each turn for the CivAdvisor overlay. No gameplay effect.</Teaser>
+        <Description>CivAdvisor State Export is a lightweight, client-side companion mod. Each turn it reads your own readable game state and writes it to Lua.log so the external CivAdvisor overlay can offer strategic advice. It does not change any rules, units, yields, UI, or AI behaviour, does not touch saved games, and is multiplayer-safe (read-only, every call is pcall-guarded). Enable it so it matches in multiplayer lobbies; only the host needs to run the overlay.</Description>
+        <Authors>tobias-jermain</Authors>
+        <SpecialThumbnail>false</SpecialThumbnail>
         <AffectsSavedGames>0</AffectsSavedGames>
         <SupportsSinglePlayer>1</SupportsSinglePlayer>
         <SupportsMultiplayer>1</SupportsMultiplayer>
+        <CompatibleVersions>1.2,2.0</CompatibleVersions>
     </Properties>
     <Files>
         <File>UI/CivAdvisor.xml</File>
