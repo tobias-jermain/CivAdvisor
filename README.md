@@ -46,7 +46,10 @@ A real-time, always-on-top overlay advisor for **Sid Meier's Civilization VI**. 
 3. Ensure Civ VI logs are enabled (Lua.log typically at `%LOCALAPPDATA%\Firaxis Games\Sid Meier's Civilization VI\Logs\`)
 4. Run `python overlay/main.py`
 
-The overlay will auto-hide when the AIs move and re-appear when it's your turn.
+The overlay stays open while you play. When you end your turn it keeps the
+window up and shows a loading spinner on each stat while the AIs move, then
+refreshes with the new turn's numbers. Logs are written to
+`%LOCALAPPDATA%\CivAdvisor\logs` (frozen build) or next to the source (dev).
 
 ## Architecture
 
